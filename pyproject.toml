@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openclaw-voice"
+version = "0.1.0"
+description = "Wake-word voice bridge for OpenClaw on Windows"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "RealtimeSTT",
+  "pvporcupine",
+  "edge-tts",
+  "pygame",
+  "requests",
+  "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.6.0",
+  "mypy>=1.10.0",
+  "types-requests",
+  "pre-commit>=3.8.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["openclaw_voice*"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+files = ["openclaw_voice", "voice_bridge.py"]
+
+[[tool.mypy.overrides]]
+module = ["openclaw_voice.adapters.realtimestt_adapter"]
+disable_error_code = ["import-untyped"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

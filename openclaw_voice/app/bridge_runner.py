@@ -1,0 +1,216 @@
+"""Application runner with explicit state machine."""
+
+from __future__ import annotations
+
+import logging
+import os
+import time
+import uuid
+from contextlib import suppress
+from enum import StrEnum
+from pathlib import Path
+from typing import TextIO
+
+from openclaw_voice.adapters.realtimestt_adapter import RealtimeSTTRecorderAdapter
+from openclaw_voice.clients.openclaw_client import OpenClawClient
+from openclaw_voice.config import VoiceConfig
+from openclaw_voice.logging_setup import configure_logging
+from openclaw_voice.ports import OpenClawClientPort, RecorderPort, TTSServicePort
+from openclaw_voice.services.tts_service import TTSService
+
+LOGGER = logging.getLogger(__name__)
+
+
+class BridgeState(StrEnum):
+    """Bridge lifecycle states."""
+
+    IDLE = "IDLE"
+    LISTENING = "LISTENING"
+    PROCESSING = "PROCESSING"
+    SPEAKING = "SPEAKING"
+
+
+class BridgeRunner:
+    """Coordinates recorder, OpenClaw client and TTS service."""
+
+    def __init__(
+        self,
+        recorder: RecorderPort,
+        client: OpenClawClientPort,
+        tts: TTSServicePort,
+        lock_file: str = "voice_bridge.lock",
+    ) -> None:
+        self.recorder = recorder
+        self.client = client
+        self.tts = tts
+        self.lock_file = lock_file
+        self.state = BridgeState.IDLE
+        self.instance_id = uuid.uuid4().hex[:8]
+        self._cycle_no = 0
+        self._instance_lock = _SingleInstanceLock(lock_file)
+
+    def _set_state(self, state: BridgeState) -> None:
+        if self.state != state:
+            LOGGER.info(
+                "state_transition instance=%s from=%s to=%s",
+                self.instance_id,
+                self.state,
+                state,
+            )
+            self.state = state
+
+    @staticmethod
+    def _beep() -> None:
+        try:
+            import winsound
+
+            winsound.Beep(880, 150)
+        except Exception:
+            LOGGER.error("beep_error")
+
+    def run_once(self) -> None:
+        """Process one listen->reply cycle; never raises."""
+        self._cycle_no += 1
+        cycle_no = self._cycle_no
+        started = time.monotonic()
+        LOGGER.info("cycle_start instance=%s cycle=%s", self.instance_id, cycle_no)
+        self._set_state(BridgeState.LISTENING)
+        try:
+            text = self.recorder.text().strip()
+            if not text:
+                LOGGER.info(
+                    "no_speech_recognized instance=%s cycle=%s",
+                    self.instance_id,
+                    cycle_no,
+                )
+                self._set_state(BridgeState.IDLE)
+                return
+
+            LOGGER.info(
+                "speech_recognized instance=%s cycle=%s text_len=%s",
+                self.instance_id,
+                cycle_no,
+                len(text),
+            )
+            self._set_state(BridgeState.PROCESSING)
+            reply = self.client.ask(text)
+
+            self._set_state(BridgeState.SPEAKING)
+            LOGGER.info(
+                "tts_lifecycle instance=%s cycle=%s action=pause_recorder",
+                self.instance_id,
+                cycle_no,
+            )
+            self.tts.speak(
+                reply,
+                before_speak=self.recorder.pause,
+                after_speak=self.recorder.resume,
+            )
+            LOGGER.info(
+                "tts_lifecycle instance=%s cycle=%s action=resume_recorder",
+                self.instance_id,
+                cycle_no,
+            )
+            self._set_state(BridgeState.IDLE)
+        except Exception as exc:
+            LOGGER.error(
+                "bridge_cycle_error instance=%s cycle=%s error=%s",
+                self.instance_id,
+                cycle_no,
+                exc,
+            )
+            self._set_state(BridgeState.IDLE)
+        finally:
+            elapsed = time.monotonic() - started
+            LOGGER.info(
+                "cycle_done instance=%s cycle=%s elapsed_sec=%.3f",
+                self.instance_id,
+                cycle_no,
+                elapsed,
+            )
+
+    def run_forever(self) -> None:
+        """Run bridge loop until interrupted."""
+        if not self._instance_lock.acquire():
+            LOGGER.error(
+                "bridge_start_aborted reason=instance_already_running lock_file=%s",
+                self.lock_file,
+            )
+            return
+        LOGGER.info("bridge_start instance=%s", self.instance_id)
+        try:
+            while True:
+                self.run_once()
+        except KeyboardInterrupt:
+            LOGGER.info("bridge_stop instance=%s", self.instance_id)
+        finally:
+            self._instance_lock.release()
+
+
+def build_runner() -> BridgeRunner:
+    """Construct fully wired runner from environment config."""
+    config = VoiceConfig.from_env()
+    configure_logging(config.log_file)
+
+    adapter = RealtimeSTTRecorderAdapter(
+        wake_word=config.wake_word,
+        wake_sensitivity=config.wake_sensitivity,
+        silence_seconds=config.silence_seconds,
+        on_wakeword_detected=BridgeRunner._beep,
+    )
+    client = OpenClawClient(
+        base_url=config.openclaw_gateway_url,
+        token=config.openclaw_gateway_token,
+        agent_id=config.openclaw_agent_id,
+        history_limit=config.history_limit,
+    )
+    tts = TTSService(voice=config.tts_voice)
+    return BridgeRunner(recorder=adapter.port, client=client, tts=tts, lock_file=config.lock_file)
+
+
+class _SingleInstanceLock:
+    """Cross-process singleton guard for local runtime."""
+
+    def __init__(self, lock_file: str) -> None:
+        self.lock_file = lock_file
+        self._file: TextIO | None = None
+
+    def acquire(self) -> bool:
+        Path(self.lock_file).parent.mkdir(parents=True, exist_ok=True)
+        file_handle = open(self.lock_file, "a+", encoding="utf-8")
+        self._file = file_handle
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(file_handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined]
+            file_handle.seek(0)
+            file_handle.truncate()
+            file_handle.write(str(os.getpid()))
+            file_handle.flush()
+            return True
+        except OSError:
+            return False
+
+    def release(self) -> None:
+        if self._file is None:
+            return
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                with suppress(OSError):
+                    msvcrt.locking(self._file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                with suppress(OSError):
+                    fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
+        finally:
+            with suppress(Exception):
+                self._file.close()
+            self._file = None

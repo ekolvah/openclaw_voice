@@ -1,6 +1,5 @@
 RealtimeSTT
 pvporcupine
-groq
 edge-tts
 pygame
 requests
