@@ -1,0 +1,7 @@
+RealtimeSTT
+pvporcupine
+groq
+edge-tts
+pygame
+requests
+python-dotenv
