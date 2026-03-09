@@ -29,6 +29,15 @@ Paste notable validation details if a reviewer should inspect anything closely.
 
 Summarize the review outcome. If there were no material findings, say `No findings`.
 
+## Declarative Design
+
+- [ ] implementation stays declarative by default
+- [ ] any imperative code is limited to an integration boundary and justified below
+
+Note any imperative sections and why they were necessary.
+
 ## Risks / Rollback
 
 List behavior, ops, config, or migration risks and how to roll back if needed.
+
+State `No added support burden` if applicable.

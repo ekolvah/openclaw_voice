@@ -47,6 +47,8 @@ This repository uses these rules for any AI coding assistant session.
 - Run a local AI code review before opening a PR for any non-trivial change.
 - Keep PRs small and single-purpose; prefer one issue-sized change per PR.
 - Summarize AI review findings in the PR, including any fixes made or explicit residual risks.
+- Reject changes that add avoidable support burden, hidden coupling, or unnecessary imperative control flow.
+- Prefer declarative designs unless the code is at an explicit integration boundary.
 - Prefer tests for behavioral changes.
 - Preserve backward-compatible entrypoints unless explicitly requested.
 - Update `.env.example` and docs when config changes.
@@ -55,6 +57,8 @@ This repository uses these rules for any AI coding assistant session.
 ## Definition of Done
 - Behavior implemented and verified.
 - Local AI review completed for non-trivial changes and findings addressed or documented.
+- The change does not introduce avoidable future bug-fix or support cost.
+- The implementation is declarative by default, with imperative code limited to integration boundaries.
 - Logs are sufficient to diagnose failures without reproducing locally.
 - Lint/type/tests pass.
 - No new avoidable support burden introduced.

@@ -7,6 +7,8 @@ This repository uses GitHub as the system of record.
 - Chat is for discussion, exploration, and debugging.
 - GitHub Issues are the source of truth for bugs, features, and tech debt.
 - GitHub PRs are the source of truth for code review, validation evidence, and merge decisions.
+- Optimize for minimum future support cost and minimum future bug-fix cost, not just short-term delivery speed.
+- Prefer declarative implementations; use imperative code only where integration boundaries make it necessary.
 - Every non-trivial code change should link to an Issue.
 - Every pull request should close or reference an Issue.
 - Every non-trivial pull request should include a local AI review summary.
@@ -56,6 +58,8 @@ Every PR should include:
 - validation results
 - risks and rollback notes
 - AI review findings summary
+- explicit note when imperative code was necessary and why a declarative approach was not suitable
+- explicit note if the change increases support burden, or `No added support burden` if it does not
 
 ## Branch Protection
 
