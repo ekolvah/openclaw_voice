@@ -21,6 +21,9 @@ jobs:
           pip install -e ".[dev]"
           pip install -r requirements-cpu.txt
 
+      - name: Secrets
+        run: pre-commit run detect-secrets --all-files --show-diff-on-failure
+
       - name: Ruff
         run: ruff check .
 

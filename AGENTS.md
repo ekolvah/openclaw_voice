@@ -35,6 +35,7 @@ This repository uses these rules for any AI coding assistant session.
 - Error logs must include actionable context (operation, target, exception).
 
 ## Quality Gates (must pass before commit)
+- `pre-commit run detect-secrets --all-files`
 - `ruff check .`
 - `mypy .`
 - `pytest -q`
@@ -50,6 +51,7 @@ This repository uses these rules for any AI coding assistant session.
 - Reject changes that add avoidable support burden, hidden coupling, or unnecessary imperative control flow.
 - Prefer declarative designs unless the code is at an explicit integration boundary.
 - Prefer tests for behavioral changes.
+- Run secret scanning before commit and in CI; treat any real secret finding as a release blocker.
 - Preserve backward-compatible entrypoints unless explicitly requested.
 - Update `.env.example` and docs when config changes.
 - Never commit secrets, runtime lock files, generated audio, or local caches.

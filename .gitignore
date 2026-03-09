@@ -8,4 +8,6 @@ realtimesst.log
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pre-commit-cache/
 openclaw_voice.egg-info/
+.coverage

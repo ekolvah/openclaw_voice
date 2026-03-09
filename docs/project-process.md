@@ -42,6 +42,7 @@ This repository uses GitHub as the system of record.
 3. Define acceptance criteria in the Issue.
 4. Implement the change in a branch linked to that Issue.
 5. Run local validation:
+   - `pre-commit run detect-secrets --all-files`
    - `ruff check .`
    - `mypy .`
    - `pytest -q`
