@@ -12,6 +12,8 @@ This repository uses these rules for any AI coding assistant session.
 - Avoid hidden side effects; isolate I/O boundaries (network, filesystem, audio, subprocess).
 - Use fail-fast config validation.
 - Keep state transitions explicit and observable.
+- Write repository automation and support scripts in Python by default.
+- Use a non-Python scripting language only after explicit agreement and an accompanying policy update.
 
 ## Code Style
 - Default to declarative patterns:

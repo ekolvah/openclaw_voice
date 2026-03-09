@@ -9,6 +9,8 @@ This repository uses GitHub as the system of record.
 - GitHub PRs are the source of truth for code review, validation evidence, and merge decisions.
 - Optimize for minimum future support cost and minimum future bug-fix cost, not just short-term delivery speed.
 - Prefer declarative implementations; use imperative code only where integration boundaries make it necessary.
+- Write repository automation and support scripts in Python by default.
+- Use another scripting language only after explicit agreement and a matching update to repository rules.
 - Every non-trivial code change should link to an Issue.
 - Every pull request should close or reference an Issue.
 - Every non-trivial pull request should include a local AI review summary.
