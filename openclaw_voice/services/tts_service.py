@@ -1,4 +1,4 @@
-"""Provider-based TTS orchestration with explicit fallback."""
+"""Provider-based TTS orchestration with shaping and fallback."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import pygame
 
 from openclaw_voice.config import VoiceConfig
-from openclaw_voice.ports import TTSProviderPort
+from openclaw_voice.ports import SpeechShaperPort, TTSProviderPort
+from openclaw_voice.services.speech_shaper import RussianSpeechShaper
 from openclaw_voice.services.tts_providers import SileroTTSProvider
 
 LOGGER = logging.getLogger(__name__)
@@ -24,9 +25,11 @@ class TTSService:
         self,
         primary_provider: TTSProviderPort,
         fallback_provider: TTSProviderPort | None,
+        shaper: SpeechShaperPort,
     ) -> None:
         self.primary_provider = primary_provider
         self.fallback_provider = fallback_provider
+        self.shaper = shaper
 
     def _play_file(self, path: str) -> None:
         pygame.mixer.init()
@@ -45,12 +48,12 @@ class TTSService:
         """Speak text and run optional hooks around playback."""
         temp_path: str | None = None
         active_provider = self.primary_provider
-        chunks = [text.strip()] if text.strip() else []
+        chunks = self.shaper.shape(text)
         try:
             if before_speak:
                 before_speak()
             if not chunks:
-                LOGGER.info("tts_skip reason=empty_text")
+                LOGGER.info("tts_skip reason=empty_shaped_text")
                 return
 
             LOGGER.info(
@@ -114,9 +117,11 @@ def build_tts_service(config: VoiceConfig) -> TTSService:
         if config.tts_fallback_provider and config.tts_fallback_provider != config.tts_provider
         else None
     )
+    shaper = RussianSpeechShaper(max_chunk_chars=config.speech_max_chunk_chars)
     return TTSService(
         primary_provider=primary_provider,
         fallback_provider=fallback_provider,
+        shaper=shaper,
     )
 
 

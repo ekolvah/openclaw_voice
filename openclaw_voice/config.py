@@ -49,6 +49,7 @@ class VoiceConfig:
     silero_model_id: str = "v4_ru"
     silero_speaker: str = "xenia"
     silero_sample_rate: int = 48000
+    speech_max_chunk_chars: int = 220
     log_file: str = "voice_bridge.log"
     lock_file: str = "voice_bridge.lock"
 
@@ -75,6 +76,7 @@ class VoiceConfig:
             silero_model_id=os.getenv("SILERO_MODEL_ID", "v4_ru").strip(),
             silero_speaker=os.getenv("SILERO_SPEAKER", "xenia").strip(),
             silero_sample_rate=_env_int("SILERO_SAMPLE_RATE", 48000),
+            speech_max_chunk_chars=_env_int("SPEECH_MAX_CHUNK_CHARS", 220),
             lock_file=os.getenv("VOICE_LOCK_FILE", "voice_bridge.lock").strip(),
         )
         _validate_tts_config(config)
