@@ -65,7 +65,6 @@ def test_build_runner_aborts_before_adapter_init_when_lock_is_held(
         openclaw_gateway_url="http://localhost:18789",
         openclaw_gateway_token="token",
         openclaw_agent_id="main",
-        tts_voice="ru-RU-DmitryNeural",
         wake_word="jarvis",
         wake_sensitivity=0.6,
         silence_seconds=1.5,
