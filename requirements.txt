@@ -1,5 +1,7 @@
 RealtimeSTT
 pvporcupine
 pygame
+omegaconf
 requests
 python-dotenv
+soundfile
