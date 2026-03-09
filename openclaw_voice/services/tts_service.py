@@ -1,28 +1,35 @@
-"""Edge TTS service with deterministic cleanup and lifecycle hooks."""
+"""Provider-based TTS orchestration with shaping and fallback."""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import tempfile
 from collections.abc import Callable
 
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
-import edge_tts
 import pygame
+
+from openclaw_voice.config import VoiceConfig
+from openclaw_voice.ports import SpeechShaperPort, TTSProviderPort
+from openclaw_voice.services.speech_shaper import RussianSpeechShaper
+from openclaw_voice.services.tts_providers import SaluteSpeechTTSProvider, SileroTTSProvider
 
 LOGGER = logging.getLogger(__name__)
 
 
 class TTSService:
-    """Generate and play speech from text."""
+    """Generate and play speech from text with explicit provider fallback."""
 
-    def __init__(self, voice: str) -> None:
-        self.voice = voice
-
-    def _synthesize(self, text: str, out_path: str) -> None:
-        asyncio.run(edge_tts.Communicate(text, self.voice).save(out_path))
+    def __init__(
+        self,
+        primary_provider: TTSProviderPort,
+        fallback_provider: TTSProviderPort | None,
+        shaper: SpeechShaperPort,
+    ) -> None:
+        self.primary_provider = primary_provider
+        self.fallback_provider = fallback_provider
+        self.shaper = shaper
 
     def _play_file(self, path: str) -> None:
         pygame.mixer.init()
@@ -40,22 +47,101 @@ class TTSService:
     ) -> None:
         """Speak text and run optional hooks around playback."""
         temp_path: str | None = None
+        active_provider = self.primary_provider
+        chunks = self.shaper.shape(text)
         try:
             if before_speak:
                 before_speak()
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
-                temp_path = tmp.name
-            LOGGER.info("tts_start")
-            self._synthesize(text, temp_path)
-            self._play_file(temp_path)
-            LOGGER.info("tts_done")
+            if not chunks:
+                LOGGER.info("tts_skip reason=empty_shaped_text")
+                return
+
+            LOGGER.info(
+                "tts_start provider=%s chunks=%s",
+                active_provider.name,
+                len(chunks),
+            )
+            for chunk_no, chunk in enumerate(chunks, start=1):
+                try:
+                    temp_path = self._synthesize_chunk(active_provider, chunk)
+                except Exception as exc:
+                    LOGGER.error(
+                        "tts_provider_error provider=%s chunk=%s error=%s",
+                        active_provider.name,
+                        chunk_no,
+                        exc,
+                    )
+                    if self.fallback_provider is None or active_provider is self.fallback_provider:
+                        raise
+                    active_provider = self.fallback_provider
+                    LOGGER.info(
+                        "tts_provider_fallback from_provider=%s to_provider=%s chunk=%s",
+                        self.primary_provider.name,
+                        active_provider.name,
+                        chunk_no,
+                    )
+                    temp_path = self._synthesize_chunk(active_provider, chunk)
+
+                self._play_file(temp_path)
+                self._cleanup_file(temp_path)
+                temp_path = None
+            LOGGER.info("tts_done provider=%s", active_provider.name)
         except Exception as exc:
             LOGGER.error("tts_error error=%s", exc)
         finally:
-            if temp_path and os.path.exists(temp_path):
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    LOGGER.error("tts_cleanup_error path=%s", temp_path)
+            self._cleanup_file(temp_path)
             if after_speak:
                 after_speak()
+
+    def _synthesize_chunk(self, provider: TTSProviderPort, text: str) -> str:
+        suffix = provider.audio_suffix or ".wav"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            out_path = tmp.name
+        provider.synthesize(text, out_path)
+        return out_path
+
+    @staticmethod
+    def _cleanup_file(path: str | None) -> None:
+        if path and os.path.exists(path):
+            try:
+                os.unlink(path)
+            except OSError:
+                LOGGER.error("tts_cleanup_error path=%s", path)
+
+
+def build_tts_service(config: VoiceConfig) -> TTSService:
+    """Construct provider-based TTS service from runtime config."""
+    primary_provider = _build_provider(config.tts_provider, config)
+    fallback_provider = (
+        _build_provider(config.tts_fallback_provider, config)
+        if config.tts_fallback_provider and config.tts_fallback_provider != config.tts_provider
+        else None
+    )
+    shaper = RussianSpeechShaper(max_chunk_chars=config.speech_max_chunk_chars)
+    return TTSService(
+        primary_provider=primary_provider,
+        fallback_provider=fallback_provider,
+        shaper=shaper,
+    )
+
+
+def _build_provider(provider_name: str, config: VoiceConfig) -> TTSProviderPort:
+    if provider_name == "salutespeech":
+        return SaluteSpeechTTSProvider(
+            auth_key=config.salute_auth_key,
+            auth_url=config.salute_auth_url,
+            api_url=config.salute_api_url,
+            scope=config.salute_scope,
+            voice=config.salute_voice,
+            sample_rate=config.salute_sample_rate,
+            request_timeout_sec=config.tts_request_timeout_sec,
+        )
+    if provider_name == "silero":
+        return SileroTTSProvider(
+            model_source=config.silero_model_source,
+            language=config.silero_language,
+            model_id=config.silero_model_id,
+            speaker=config.silero_speaker,
+            sample_rate=config.silero_sample_rate,
+        )
+    raise RuntimeError(f"Unsupported TTS provider: {provider_name}")

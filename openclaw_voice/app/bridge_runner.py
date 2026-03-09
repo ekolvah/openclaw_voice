@@ -16,7 +16,7 @@ from openclaw_voice.clients.openclaw_client import OpenClawClient
 from openclaw_voice.config import VoiceConfig
 from openclaw_voice.logging_setup import configure_logging
 from openclaw_voice.ports import InstanceLockPort, OpenClawClientPort, RecorderPort, TTSServicePort
-from openclaw_voice.services.tts_service import TTSService
+from openclaw_voice.services.tts_service import build_tts_service
 
 LOGGER = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ def build_runner() -> BridgeRunner:
             agent_id=config.openclaw_agent_id,
             history_limit=config.history_limit,
         )
-        tts = TTSService(voice=config.tts_voice)
+        tts = build_tts_service(config)
         return BridgeRunner(
             recorder=adapter.port,
             client=client,

@@ -1,6 +1,5 @@
 RealtimeSTT
 pvporcupine
-edge-tts
 pygame
 requests
 python-dotenv
