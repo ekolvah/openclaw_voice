@@ -133,5 +133,6 @@ def _build_provider(provider_name: str, config: VoiceConfig) -> TTSProviderPort:
             model_id=config.silero_model_id,
             speaker=config.silero_speaker,
             sample_rate=config.silero_sample_rate,
+            cache_dir=config.silero_cache_dir,
         )
     raise RuntimeError(f"Unsupported TTS provider: {provider_name}")

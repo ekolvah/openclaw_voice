@@ -53,3 +53,12 @@ def test_speech_chunk_limit_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) 
     cfg = VoiceConfig.from_env()
 
     assert cfg.speech_max_chunk_chars == 123
+
+
+def test_silero_cache_dir_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("SILERO_CACHE_DIR", ".cache/custom-torch")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.silero_cache_dir == ".cache/custom-torch"

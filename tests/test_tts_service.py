@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 from openclaw_voice.config import VoiceConfig
 from openclaw_voice.services.speech_shaper import RussianSpeechShaper
+from openclaw_voice.services.tts_providers import SileroTTSProvider
 from openclaw_voice.services.tts_service import TTSService, build_tts_service
 
 
@@ -105,15 +106,18 @@ def test_build_tts_service_uses_silero_primary_and_shaper_limit() -> None:
         history_limit=20,
         tts_provider="silero",
         tts_fallback_provider="",
+        silero_cache_dir=".cache/test-torch",
         speech_max_chunk_chars=77,
     )
 
     service = build_tts_service(config)
 
+    assert isinstance(service.primary_provider, SileroTTSProvider)
     assert service.primary_provider.name == "silero"
     assert service.fallback_provider is None
     assert isinstance(service.shaper, RussianSpeechShaper)
     assert service.shaper.max_chunk_chars == 77
+    assert service.primary_provider.cache_dir == ".cache/test-torch"
 
 
 def test_build_tts_service_skips_duplicate_fallback_provider() -> None:
@@ -127,9 +131,11 @@ def test_build_tts_service_skips_duplicate_fallback_provider() -> None:
         history_limit=20,
         tts_provider="silero",
         tts_fallback_provider="silero",
+        silero_cache_dir=".cache/test-torch",
     )
 
     service = build_tts_service(config)
 
+    assert isinstance(service.primary_provider, SileroTTSProvider)
     assert service.primary_provider.name == "silero"
     assert service.fallback_provider is None

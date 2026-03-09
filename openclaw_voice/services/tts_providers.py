@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, cast
 
 LOGGER = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class SileroTTSProvider:
     model_id: str
     speaker: str
     sample_rate: int
+    cache_dir: str
     device: str = "cpu"
     name: str = "silero"
     audio_suffix: str = ".wav"
@@ -44,11 +46,15 @@ class SileroTTSProvider:
 
         import torch
 
+        cache_dir = Path(self.cache_dir).resolve()
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        torch.hub.set_dir(str(cache_dir))
         LOGGER.info(
-            "silero_model_load_start source=%s language=%s model_id=%s",
+            "silero_model_load_start source=%s language=%s model_id=%s cache_dir=%s",
             self.model_source,
             self.language,
             self.model_id,
+            cache_dir,
         )
         load = cast(Any, torch.hub.load)
         model, _ = load(
@@ -61,5 +67,5 @@ class SileroTTSProvider:
         if hasattr(model, "to"):
             model.to(self.device)
         self._model = model
-        LOGGER.info("silero_model_load_done source=%s", self.model_source)
+        LOGGER.info("silero_model_load_done source=%s cache_dir=%s", self.model_source, cache_dir)
         return model
