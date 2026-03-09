@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import Mock
 
+from openclaw_voice.config import VoiceConfig
 from openclaw_voice.services.speech_shaper import RussianSpeechShaper
-from openclaw_voice.services.tts_service import TTSService
+from openclaw_voice.services.tts_service import TTSService, build_tts_service
 
 
 @dataclass
@@ -91,3 +92,44 @@ def test_shaper_splits_long_markdown_like_reply() -> None:
     assert all(len(chunk) <= 35 for chunk in chunks)
     assert not any("https://" in chunk for chunk in chunks)
     assert not any("[" in chunk for chunk in chunks)
+
+
+def test_build_tts_service_uses_silero_primary_and_shaper_limit() -> None:
+    config = VoiceConfig(
+        openclaw_gateway_url="http://localhost:18789",
+        openclaw_gateway_token="token",
+        openclaw_agent_id="main",
+        wake_word="jarvis",
+        wake_sensitivity=0.6,
+        silence_seconds=1.5,
+        history_limit=20,
+        tts_provider="silero",
+        tts_fallback_provider="",
+        speech_max_chunk_chars=77,
+    )
+
+    service = build_tts_service(config)
+
+    assert service.primary_provider.name == "silero"
+    assert service.fallback_provider is None
+    assert isinstance(service.shaper, RussianSpeechShaper)
+    assert service.shaper.max_chunk_chars == 77
+
+
+def test_build_tts_service_skips_duplicate_fallback_provider() -> None:
+    config = VoiceConfig(
+        openclaw_gateway_url="http://localhost:18789",
+        openclaw_gateway_token="token",
+        openclaw_agent_id="main",
+        wake_word="jarvis",
+        wake_sensitivity=0.6,
+        silence_seconds=1.5,
+        history_limit=20,
+        tts_provider="silero",
+        tts_fallback_provider="silero",
+    )
+
+    service = build_tts_service(config)
+
+    assert service.primary_provider.name == "silero"
+    assert service.fallback_provider is None
