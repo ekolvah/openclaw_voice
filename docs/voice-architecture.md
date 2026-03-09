@@ -29,7 +29,7 @@
 6. Use `SPEECH_MAX_CHUNK_CHARS` to control how aggressively long replies are split before playback.
 
 ## Smoke Test
-- Run `scripts/smoke_test_voice.ps1` for the local-first configuration checks.
+- Run `python scripts/smoke_test_voice.py --skip-bridge-run` for the local-first configuration checks.
 - Then run `run.bat` and verify one complete voice cycle:
   - wake word is detected
   - speech is recognized
