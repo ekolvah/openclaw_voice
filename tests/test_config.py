@@ -44,3 +44,12 @@ def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.Monkey
 
     assert cfg.tts_provider == "silero"
     assert cfg.tts_fallback_provider == ""
+
+
+def test_speech_chunk_limit_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("SPEECH_MAX_CHUNK_CHARS", "123")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.speech_max_chunk_chars == 123
