@@ -41,6 +41,23 @@ class TTSServicePort(Protocol):
         """Speak text and optionally execute lifecycle hooks around playback."""
 
 
+class TTSProviderPort(Protocol):
+    """Provider contract for synthesizing speech to an audio file."""
+
+    name: str
+    audio_suffix: str
+
+    def synthesize(self, text: str, out_path: str) -> None:
+        """Render text to the target audio file path."""
+
+
+class SpeechShaperPort(Protocol):
+    """Bridge-side shaping contract for spoken rendering."""
+
+    def shape(self, text: str) -> list[str]:
+        """Transform raw LLM text into speech-friendly chunks."""
+
+
 class InstanceLockPort(Protocol):
     """Cross-process lock contract used by bootstrap and shutdown."""
 

@@ -1,16 +1,4 @@
-"""Configuration loading for OpenClaw voice bridge.
-
-Environment variables:
-- OPENCLAW_GATEWAY_URL
-- OPENCLAW_GATEWAY_TOKEN
-- OPENCLAW_AGENT_ID
-- EDGE_TTS_VOICE
-- WAKE_WORD
-- WAKE_SENSITIVITY
-- SILENCE_SECONDS
-- HISTORY_LIMIT
-- VOICE_LOCK_FILE
-"""
+"""Configuration loading for OpenClaw voice bridge."""
 
 from __future__ import annotations
 
@@ -50,11 +38,17 @@ class VoiceConfig:
     openclaw_gateway_url: str
     openclaw_gateway_token: str
     openclaw_agent_id: str
-    tts_voice: str
     wake_word: str
     wake_sensitivity: float
     silence_seconds: float
     history_limit: int
+    tts_provider: str = "silero"
+    tts_fallback_provider: str = ""
+    silero_model_source: str = "snakers4/silero-models"
+    silero_language: str = "ru"
+    silero_model_id: str = "v4_ru"
+    silero_speaker: str = "xenia"
+    silero_sample_rate: int = 48000
     log_file: str = "voice_bridge.log"
     lock_file: str = "voice_bridge.lock"
 
@@ -62,16 +56,36 @@ class VoiceConfig:
     def from_env() -> VoiceConfig:
         """Load and validate runtime config from environment."""
         load_dotenv()
-        return VoiceConfig(
+        config = VoiceConfig(
             openclaw_gateway_url=os.getenv(
                 "OPENCLAW_GATEWAY_URL", "http://localhost:18789"
             ).strip(),
             openclaw_gateway_token=_require_env("OPENCLAW_GATEWAY_TOKEN"),
             openclaw_agent_id=os.getenv("OPENCLAW_AGENT_ID", "main").strip(),
-            tts_voice=os.getenv("EDGE_TTS_VOICE", "ru-RU-DmitryNeural").strip(),
             wake_word=os.getenv("WAKE_WORD", "jarvis").strip(),
             wake_sensitivity=_env_float("WAKE_SENSITIVITY", 0.6),
             silence_seconds=_env_float("SILENCE_SECONDS", 1.5),
             history_limit=_env_int("HISTORY_LIMIT", 20),
+            tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
+            tts_fallback_provider=os.getenv("TTS_FALLBACK_PROVIDER", "").strip().lower(),
+            silero_model_source=os.getenv(
+                "SILERO_MODEL_SOURCE", "snakers4/silero-models"
+            ).strip(),
+            silero_language=os.getenv("SILERO_LANGUAGE", "ru").strip(),
+            silero_model_id=os.getenv("SILERO_MODEL_ID", "v4_ru").strip(),
+            silero_speaker=os.getenv("SILERO_SPEAKER", "xenia").strip(),
+            silero_sample_rate=_env_int("SILERO_SAMPLE_RATE", 48000),
             lock_file=os.getenv("VOICE_LOCK_FILE", "voice_bridge.lock").strip(),
+        )
+        _validate_tts_config(config)
+        return config
+
+
+def _validate_tts_config(config: VoiceConfig) -> None:
+    supported = {"silero"}
+    if config.tts_provider not in supported:
+        raise RuntimeError(f"Unsupported TTS_PROVIDER: {config.tts_provider}")
+    if config.tts_fallback_provider and config.tts_fallback_provider not in supported:
+        raise RuntimeError(
+            f"Unsupported TTS_FALLBACK_PROVIDER: {config.tts_fallback_provider}"
         )
