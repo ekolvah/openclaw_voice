@@ -1,0 +1,40 @@
+name: PR Hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+
+          body = os.environ.get("PR_BODY", "")
+          required_sections = [
+              "## Linked Issue",
+              "## Summary",
+              "## Acceptance Criteria Coverage",
+              "## Validation",
+              "## AI Review Findings Summary",
+              "## Risks / Rollback",
+          ]
+
+          missing = [section for section in required_sections if section not in body]
+          if "Closes #" not in body and "Refs #" not in body:
+              missing.append("issue reference (`Closes #` or `Refs #`)")
+
+          if missing:
+              print("PR body is missing required content:")
+              for item in missing:
+                  print(f"- {item}")
+              sys.exit(1)
+
+          print("PR body contains the required workflow sections.")
+          PY

@@ -43,6 +43,10 @@ This repository uses these rules for any AI coding assistant session.
 - Treat GitHub Issues as the system of record for bugs, features, and tech debt.
 - Use chat for discussion only; persist accepted work items in Issues.
 - Link non-trivial changes to an Issue and keep acceptance criteria there.
+- Use GitHub PRs as the system of record for code review, validation evidence, and merge decisions.
+- Run a local AI code review before opening a PR for any non-trivial change.
+- Keep PRs small and single-purpose; prefer one issue-sized change per PR.
+- Summarize AI review findings in the PR, including any fixes made or explicit residual risks.
 - Prefer tests for behavioral changes.
 - Preserve backward-compatible entrypoints unless explicitly requested.
 - Update `.env.example` and docs when config changes.
@@ -50,6 +54,7 @@ This repository uses these rules for any AI coding assistant session.
 
 ## Definition of Done
 - Behavior implemented and verified.
+- Local AI review completed for non-trivial changes and findings addressed or documented.
 - Logs are sufficient to diagnose failures without reproducing locally.
 - Lint/type/tests pass.
 - No new avoidable support burden introduced.
