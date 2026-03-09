@@ -51,6 +51,11 @@ class RealtimeSTTRecorderAdapter:
     def resume(self) -> None:
         self._call_first_available(("start", "resume"))
 
+    def shutdown(self) -> None:
+        LOGGER.info("recorder_shutdown_start")
+        self._call_first_available(("shutdown", "close", "terminate", "stop"))
+        LOGGER.info("recorder_shutdown_done")
+
     def _call_first_available(self, methods: tuple[str, ...]) -> None:
         for name in methods:
             candidate = getattr(self._recorder, name, None)
@@ -60,3 +65,4 @@ class RealtimeSTTRecorderAdapter:
                     return
                 except Exception as exc:
                     LOGGER.error("recorder_method_error method=%s error=%s", name, exc)
+        LOGGER.warning("recorder_method_missing methods=%s", ",".join(methods))

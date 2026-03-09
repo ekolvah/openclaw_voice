@@ -16,6 +16,6 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: ./.venv/Scripts/python.exe -m pytest -q
+        entry: ./.venv/Scripts/python.exe -m pytest
         language: system
         pass_filenames: false

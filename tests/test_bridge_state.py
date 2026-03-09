@@ -11,6 +11,7 @@ class FakeRecorder:
     text_value: str
     paused: int = 0
     resumed: int = 0
+    shutdowns: int = 0
 
     def text(self) -> str:
         return self.text_value
@@ -20,6 +21,9 @@ class FakeRecorder:
 
     def resume(self) -> None:
         self.resumed += 1
+
+    def shutdown(self) -> None:
+        self.shutdowns += 1
 
 
 @dataclass
@@ -51,11 +55,19 @@ class FakeTTS:
             after_speak()
 
 
+class FakeLock:
+    def __init__(self) -> None:
+        self.released = 0
+
+    def release(self) -> None:
+        self.released += 1
+
+
 def test_empty_text_does_not_call_client_or_tts() -> None:
     recorder = FakeRecorder(text_value="   ")
     client = FakeClient()
     tts = FakeTTS()
-    runner = BridgeRunner(recorder=recorder, client=client, tts=tts)
+    runner = BridgeRunner(recorder=recorder, client=client, tts=tts, instance_lock=FakeLock())
 
     runner.run_once()
 
@@ -68,7 +80,7 @@ def test_client_error_does_not_crash_cycle() -> None:
     recorder = FakeRecorder(text_value="hello")
     client = FakeClient(fail=True)
     tts = FakeTTS()
-    runner = BridgeRunner(recorder=recorder, client=client, tts=tts)
+    runner = BridgeRunner(recorder=recorder, client=client, tts=tts, instance_lock=FakeLock())
 
     runner.run_once()
 
@@ -81,7 +93,7 @@ def test_speaking_pauses_and_resumes_recorder() -> None:
     recorder = FakeRecorder(text_value="hello")
     client = FakeClient()
     tts = FakeTTS()
-    runner = BridgeRunner(recorder=recorder, client=client, tts=tts)
+    runner = BridgeRunner(recorder=recorder, client=client, tts=tts, instance_lock=FakeLock())
 
     runner.run_once()
 
@@ -89,3 +101,16 @@ def test_speaking_pauses_and_resumes_recorder() -> None:
     assert recorder.paused == 1
     assert recorder.resumed == 1
     assert runner.state == BridgeState.IDLE
+
+
+def test_shutdown_releases_recorder_and_lock() -> None:
+    recorder = FakeRecorder(text_value="")
+    client = FakeClient()
+    tts = FakeTTS()
+    lock = FakeLock()
+    runner = BridgeRunner(recorder=recorder, client=client, tts=tts, instance_lock=lock)
+
+    runner.shutdown()
+
+    assert recorder.shutdowns == 1
+    assert lock.released == 1

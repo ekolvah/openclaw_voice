@@ -18,6 +18,9 @@ class RecorderPort(Protocol):
     def resume(self) -> None:
         """Resume mic capture after TTS playback."""
 
+    def shutdown(self) -> None:
+        """Release recorder resources and child processes."""
+
 
 class OpenClawClientPort(Protocol):
     """OpenClaw chat client contract."""
@@ -36,3 +39,10 @@ class TTSServicePort(Protocol):
         after_speak: Callable[[], None] | None = None,
     ) -> None:
         """Speak text and optionally execute lifecycle hooks around playback."""
+
+
+class InstanceLockPort(Protocol):
+    """Cross-process lock contract used by bootstrap and shutdown."""
+
+    def release(self) -> None:
+        """Release the process-level singleton lock."""

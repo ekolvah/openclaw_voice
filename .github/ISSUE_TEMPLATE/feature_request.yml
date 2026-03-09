@@ -1,0 +1,46 @@
+name: Feature request
+description: Capture a user-facing change as a scoped task.
+title: "feature: "
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What user outcome do we want?
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: User value
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included?
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+  - type: textarea
+    id: implementation_notes
+    attributes:
+      label: Implementation notes
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks

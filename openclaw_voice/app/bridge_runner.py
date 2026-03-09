@@ -1,4 +1,4 @@
-"""Application runner with explicit state machine."""
+"""Application runner with explicit state machine and lifecycle control."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from openclaw_voice.adapters.realtimestt_adapter import RealtimeSTTRecorderAdapt
 from openclaw_voice.clients.openclaw_client import OpenClawClient
 from openclaw_voice.config import VoiceConfig
 from openclaw_voice.logging_setup import configure_logging
-from openclaw_voice.ports import OpenClawClientPort, RecorderPort, TTSServicePort
+from openclaw_voice.ports import InstanceLockPort, OpenClawClientPort, RecorderPort, TTSServicePort
 from openclaw_voice.services.tts_service import TTSService
 
 LOGGER = logging.getLogger(__name__)
@@ -38,16 +38,15 @@ class BridgeRunner:
         recorder: RecorderPort,
         client: OpenClawClientPort,
         tts: TTSServicePort,
-        lock_file: str = "voice_bridge.lock",
+        instance_lock: InstanceLockPort,
     ) -> None:
         self.recorder = recorder
         self.client = client
         self.tts = tts
-        self.lock_file = lock_file
+        self.instance_lock = instance_lock
         self.state = BridgeState.IDLE
         self.instance_id = uuid.uuid4().hex[:8]
         self._cycle_no = 0
-        self._instance_lock = _SingleInstanceLock(lock_file)
 
     def _set_state(self, state: BridgeState) -> None:
         if self.state != state:
@@ -129,14 +128,16 @@ class BridgeRunner:
                 elapsed,
             )
 
+    def shutdown(self) -> None:
+        """Release runtime resources in deterministic order."""
+        LOGGER.info("bridge_shutdown_start instance=%s", self.instance_id)
+        with suppress(Exception):
+            self.recorder.shutdown()
+        self.instance_lock.release()
+        LOGGER.info("bridge_shutdown_done instance=%s", self.instance_id)
+
     def run_forever(self) -> None:
         """Run bridge loop until interrupted."""
-        if not self._instance_lock.acquire():
-            LOGGER.error(
-                "bridge_start_aborted reason=instance_already_running lock_file=%s",
-                self.lock_file,
-            )
-            return
         LOGGER.info("bridge_start instance=%s", self.instance_id)
         try:
             while True:
@@ -144,7 +145,7 @@ class BridgeRunner:
         except KeyboardInterrupt:
             LOGGER.info("bridge_stop instance=%s", self.instance_id)
         finally:
-            self._instance_lock.release()
+            self.shutdown()
 
 
 def build_runner() -> BridgeRunner:
@@ -152,20 +153,37 @@ def build_runner() -> BridgeRunner:
     config = VoiceConfig.from_env()
     configure_logging(config.log_file)
 
-    adapter = RealtimeSTTRecorderAdapter(
-        wake_word=config.wake_word,
-        wake_sensitivity=config.wake_sensitivity,
-        silence_seconds=config.silence_seconds,
-        on_wakeword_detected=BridgeRunner._beep,
-    )
-    client = OpenClawClient(
-        base_url=config.openclaw_gateway_url,
-        token=config.openclaw_gateway_token,
-        agent_id=config.openclaw_agent_id,
-        history_limit=config.history_limit,
-    )
-    tts = TTSService(voice=config.tts_voice)
-    return BridgeRunner(recorder=adapter.port, client=client, tts=tts, lock_file=config.lock_file)
+    instance_lock = _SingleInstanceLock(config.lock_file)
+    if not instance_lock.acquire():
+        LOGGER.error(
+            "bridge_start_aborted reason=instance_already_running lock_file=%s",
+            config.lock_file,
+        )
+        raise RuntimeError("Another voice bridge instance is already running")
+
+    try:
+        adapter = RealtimeSTTRecorderAdapter(
+            wake_word=config.wake_word,
+            wake_sensitivity=config.wake_sensitivity,
+            silence_seconds=config.silence_seconds,
+            on_wakeword_detected=BridgeRunner._beep,
+        )
+        client = OpenClawClient(
+            base_url=config.openclaw_gateway_url,
+            token=config.openclaw_gateway_token,
+            agent_id=config.openclaw_agent_id,
+            history_limit=config.history_limit,
+        )
+        tts = TTSService(voice=config.tts_voice)
+        return BridgeRunner(
+            recorder=adapter.port,
+            client=client,
+            tts=tts,
+            instance_lock=instance_lock,
+        )
+    except Exception:
+        instance_lock.release()
+        raise
 
 
 class _SingleInstanceLock:
@@ -174,11 +192,13 @@ class _SingleInstanceLock:
     def __init__(self, lock_file: str) -> None:
         self.lock_file = lock_file
         self._file: TextIO | None = None
+        self._released = False
 
     def acquire(self) -> bool:
         Path(self.lock_file).parent.mkdir(parents=True, exist_ok=True)
         file_handle = open(self.lock_file, "a+", encoding="utf-8")
         self._file = file_handle
+        self._released = False
         try:
             if os.name == "nt":
                 import msvcrt
@@ -192,12 +212,17 @@ class _SingleInstanceLock:
             file_handle.truncate()
             file_handle.write(str(os.getpid()))
             file_handle.flush()
+            LOGGER.info("instance_lock_acquired path=%s", self.lock_file)
             return True
         except OSError:
+            with suppress(Exception):
+                file_handle.close()
+            self._file = None
+            self._released = True
             return False
 
     def release(self) -> None:
-        if self._file is None:
+        if self._released or self._file is None:
             return
         try:
             if os.name == "nt":
@@ -214,3 +239,5 @@ class _SingleInstanceLock:
             with suppress(Exception):
                 self._file.close()
             self._file = None
+            self._released = True
+            LOGGER.info("instance_lock_released path=%s", self.lock_file)

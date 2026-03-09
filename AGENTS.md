@@ -40,6 +40,9 @@ This repository uses these rules for any AI coding assistant session.
 - `pytest -q`
 
 ## Change Process
+- Treat GitHub Issues as the system of record for bugs, features, and tech debt.
+- Use chat for discussion only; persist accepted work items in Issues.
+- Link non-trivial changes to an Issue and keep acceptance criteria there.
 - Prefer tests for behavioral changes.
 - Preserve backward-compatible entrypoints unless explicitly requested.
 - Update `.env.example` and docs when config changes.
@@ -50,4 +53,3 @@ This repository uses these rules for any AI coding assistant session.
 - Logs are sufficient to diagnose failures without reproducing locally.
 - Lint/type/tests pass.
 - No new avoidable support burden introduced.
-
