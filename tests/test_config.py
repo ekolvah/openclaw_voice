@@ -43,9 +43,10 @@ def test_salute_auth_key_required_when_salutespeech_selected(
 def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("TTS_PROVIDER", "silero")
-    monkeypatch.setenv("TTS_FALLBACK_PROVIDER", "silero")
+    monkeypatch.setenv("TTS_FALLBACK_PROVIDER", "")
     monkeypatch.setenv("SALUTE_AUTH_KEY", "")
 
     cfg = VoiceConfig.from_env()
 
     assert cfg.tts_provider == "silero"
+    assert cfg.tts_fallback_provider == ""

@@ -67,8 +67,8 @@ class VoiceConfig:
     wake_sensitivity: float
     silence_seconds: float
     history_limit: int
-    tts_provider: str = "salutespeech"
-    tts_fallback_provider: str = "silero"
+    tts_provider: str = "silero"
+    tts_fallback_provider: str = ""
     salute_auth_url: str = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
     salute_api_url: str = "https://smartspeech.sber.ru/rest/v1/text:synthesize"
     salute_auth_key: str = ""
@@ -99,10 +99,8 @@ class VoiceConfig:
             wake_sensitivity=_env_float("WAKE_SENSITIVITY", 0.6),
             silence_seconds=_env_float("SILENCE_SECONDS", 1.5),
             history_limit=_env_int("HISTORY_LIMIT", 20),
-            tts_provider=os.getenv("TTS_PROVIDER", "salutespeech").strip().lower(),
-            tts_fallback_provider=os.getenv(
-                "TTS_FALLBACK_PROVIDER", "silero"
-            ).strip().lower(),
+            tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
+            tts_fallback_provider=os.getenv("TTS_FALLBACK_PROVIDER", "").strip().lower(),
             salute_auth_url=os.getenv(
                 "SALUTE_AUTH_URL",
                 "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",

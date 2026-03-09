@@ -13,7 +13,10 @@ import pygame
 from openclaw_voice.config import VoiceConfig
 from openclaw_voice.ports import SpeechShaperPort, TTSProviderPort
 from openclaw_voice.services.speech_shaper import RussianSpeechShaper
-from openclaw_voice.services.tts_providers import SaluteSpeechTTSProvider, SileroTTSProvider
+from openclaw_voice.services.tts_providers import (
+    SaluteSpeechTTSProvider,
+    SileroTTSProvider,
+)
 
 LOGGER = logging.getLogger(__name__)
 

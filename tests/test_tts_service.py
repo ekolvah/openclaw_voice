@@ -67,13 +67,13 @@ def test_tts_calls_after_hook_on_error() -> None:
 
 def test_tts_falls_back_to_silero_when_primary_fails() -> None:
     events: list[str] = []
-    primary = StubProvider(name="salutespeech", audio_suffix=".wav", events=events, fail=True)
-    fallback = StubProvider(name="silero", audio_suffix=".wav", events=events)
+    primary = StubProvider(name="silero", audio_suffix=".wav", events=events, fail=True)
+    fallback = StubProvider(name="salutespeech", audio_suffix=".wav", events=events)
     service = StubTTSService(primary=primary, fallback=fallback, events=events)
 
     service.speak("hello")
 
-    assert events == ["synth:salutespeech:hello", "synth:silero:hello", "play"]
+    assert events == ["synth:silero:hello", "synth:salutespeech:hello", "play"]
 
 
 def test_shaper_splits_long_markdown_like_reply() -> None:

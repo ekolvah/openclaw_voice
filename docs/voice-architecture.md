@@ -7,16 +7,17 @@
 - Voice bridge: STT, wake-word flow, spoken-response shaping, TTS provider selection, audio playback, and fallback behavior
 
 ## Spoken Output Layer
-- Primary TTS provider: `SaluteSpeech`
-- Fallback TTS provider: `Silero`
+- Primary TTS provider: `Silero`
+- Fallback TTS provider: optional API-based provider through the same contract
 - Speech shaping happens in the bridge before TTS so Telegram and other text channels are not affected
+- Additional API-based providers can be added behind the same provider contract later without changing OpenClaw behavior
 
 ## Runtime Flow
 1. Wake-word and speech capture happen locally
 2. OpenClaw returns a text response
 3. The bridge reshapes text into spoken Russian-friendly chunks
-4. The bridge renders speech through `SaluteSpeech`
-5. If primary TTS fails, the bridge falls back to `Silero`
+4. The bridge renders speech through `Silero`
+5. If a premium provider is configured later, the same bridge contract can fall back to it explicitly
 
 ## Configuration
 See `.env.example` for the active provider settings:
