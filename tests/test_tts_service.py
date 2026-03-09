@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import Mock
 
+from openclaw_voice.services.speech_shaper import RussianSpeechShaper
 from openclaw_voice.services.tts_service import TTSService
 
 
@@ -31,6 +32,7 @@ class StubTTSService(TTSService):
         super().__init__(
             primary_provider=primary,
             fallback_provider=fallback,
+            shaper=RussianSpeechShaper(max_chunk_chars=32),
         )
         self.events = events
 
@@ -40,7 +42,7 @@ class StubTTSService(TTSService):
 
 def test_tts_runs_hooks_in_order() -> None:
     events: list[str] = []
-    primary = StubProvider(name="primary", audio_suffix=".wav", events=events)
+    primary = StubProvider(name="silero", audio_suffix=".wav", events=events)
     service = StubTTSService(primary=primary, fallback=None, events=events)
 
     def before() -> None:
@@ -50,25 +52,42 @@ def test_tts_runs_hooks_in_order() -> None:
         events.append("after")
 
     service.speak("hello", before_speak=before, after_speak=after)
-    assert events == ["before", "synth:primary:hello", "play", "after"]
+
+    assert events == ["before", "synth:silero:hello", "play", "after"]
 
 
 def test_tts_calls_after_hook_on_error() -> None:
     events: list[str] = []
-    primary = StubProvider(name="primary", audio_suffix=".wav", events=events, fail=True)
+    primary = StubProvider(name="silero", audio_suffix=".wav", events=events, fail=True)
     service = StubTTSService(primary=primary, fallback=None, events=events)
     after = Mock()
 
     service.speak("hello", after_speak=after)
+
     after.assert_called_once()
 
 
-def test_tts_falls_back_to_silero_when_primary_fails() -> None:
+def test_tts_falls_back_to_backup_provider_when_primary_fails() -> None:
     events: list[str] = []
-    primary = StubProvider(name="primary", audio_suffix=".wav", events=events, fail=True)
-    fallback = StubProvider(name="fallback", audio_suffix=".wav", events=events)
+    primary = StubProvider(name="silero", audio_suffix=".wav", events=events, fail=True)
+    fallback = StubProvider(name="backup", audio_suffix=".wav", events=events)
     service = StubTTSService(primary=primary, fallback=fallback, events=events)
 
     service.speak("hello")
 
-    assert events == ["synth:primary:hello", "synth:fallback:hello", "play"]
+    assert events == ["synth:silero:hello", "synth:backup:hello", "play"]
+
+
+def test_shaper_splits_long_markdown_like_reply() -> None:
+    shaper = RussianSpeechShaper(max_chunk_chars=35)
+
+    chunks = shaper.shape(
+        "# Heading\n"
+        "- First item with [link](https://example.com).\n"
+        "- Second item is intentionally long."
+    )
+
+    assert chunks
+    assert all(len(chunk) <= 35 for chunk in chunks)
+    assert not any("https://" in chunk for chunk in chunks)
+    assert not any("[" in chunk for chunk in chunks)
