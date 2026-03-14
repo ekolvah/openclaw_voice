@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 import uuid
 from contextlib import suppress
@@ -229,11 +230,29 @@ class BridgeRunner:
     def _parse_phrases(value: str) -> list[str]:
         return [part.strip().lower() for part in value.split(",") if part.strip()]
 
+    @staticmethod
+    def _normalize_text(text: str) -> list[str]:
+        cleaned = re.sub(r"[^\w\s]", " ", text.lower())
+        return [part for part in cleaned.split() if part]
+
     def _is_stop_intent(self, text: str) -> bool:
-        normalized = text.strip().lower()
-        if not normalized:
+        tokens = self._normalize_text(text)
+        if not tokens:
             return False
-        return any(phrase == normalized for phrase in self._stop_intent_phrases)
+        for phrase in self._stop_intent_phrases:
+            phrase_tokens = self._normalize_text(phrase)
+            if not phrase_tokens:
+                continue
+            if phrase_tokens == tokens:
+                return True
+            if len(phrase_tokens) == 1:
+                if phrase_tokens[0] in tokens and len(tokens) <= 3:
+                    return True
+            elif len(phrase_tokens) <= len(tokens):
+                for idx in range(len(tokens) - len(phrase_tokens) + 1):
+                    if tokens[idx : idx + len(phrase_tokens)] == phrase_tokens:
+                        return True
+        return False
 
     def shutdown(self) -> None:
         """Release runtime resources in deterministic order."""

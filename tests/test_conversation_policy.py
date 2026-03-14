@@ -95,3 +95,25 @@ def test_stop_intent_disabled_allows_normal_flow() -> None:
 
     assert client.calls == ["stop"]
     assert tts.calls == ["reply:stop"]
+
+
+def test_stop_intent_matches_short_phrase_with_punctuation() -> None:
+    recorder = SessionRecorder(text_value="Stop, please!", session_calls=[])
+    client = RecordingClient(calls=[])
+    tts = RecordingTTS(calls=[])
+    runner = BridgeRunner(
+        recorder=recorder,
+        client=client,
+        tts=tts,
+        instance_lock=FakeLock(),
+        session_mode="continuous",
+        session_idle_timeout_sec=10.0,
+        stop_intent_enabled=True,
+        stop_intent_phrases="stop,exit",
+    )
+
+    runner.run_once()
+
+    assert recorder.session_calls == [True, False]
+    assert client.calls == []
+    assert tts.calls == []
