@@ -31,6 +31,15 @@ def _env_int(name: str, default: int) -> int:
         raise RuntimeError(f"Invalid int for {name}: {raw}") from exc
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name, str(default)).strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    raise RuntimeError(f"Invalid bool for {name}: {raw}")
+
+
 @dataclass(frozen=True)
 class VoiceConfig:
     """Static runtime configuration loaded from .env."""
@@ -48,6 +57,8 @@ class VoiceConfig:
     openwakeword_inference_framework: str = "onnx"
     voice_session_mode: str = "single"
     session_idle_timeout_sec: float = 15.0
+    stop_intent_enabled: bool = True
+    stop_intent_phrases: str = "stop,exit,cancel,goodbye,bye"
     tts_provider: str = "silero"
     tts_fallback_provider: str = ""
     silero_model_source: str = "snakers4/silero-models"
@@ -84,6 +95,10 @@ class VoiceConfig:
             ).strip(),
             voice_session_mode=os.getenv("VOICE_SESSION_MODE", "single").strip().lower(),
             session_idle_timeout_sec=_env_float("SESSION_IDLE_TIMEOUT_SEC", 15.0),
+            stop_intent_enabled=_env_bool("STOP_INTENT_ENABLED", True),
+            stop_intent_phrases=os.getenv(
+                "STOP_INTENT_PHRASES", "stop,exit,cancel,goodbye,bye"
+            ).strip(),
             tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
             tts_fallback_provider=os.getenv("TTS_FALLBACK_PROVIDER", "").strip().lower(),
             silero_model_source=os.getenv(
@@ -113,6 +128,10 @@ def _validate_tts_config(config: VoiceConfig) -> None:
         )
     if config.wakeword_backend == "pvporcupine" and not config.wake_word:
         raise RuntimeError("WAKE_WORD must be set when WAKEWORD_BACKEND=pvporcupine")
+    if config.stop_intent_enabled and not config.stop_intent_phrases:
+        raise RuntimeError(
+            "STOP_INTENT_PHRASES must be set when STOP_INTENT_ENABLED=true"
+        )
     if config.tts_provider not in supported:
         raise RuntimeError(f"Unsupported TTS_PROVIDER: {config.tts_provider}")
     if config.tts_fallback_provider and config.tts_fallback_provider not in supported:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 import uuid
 from contextlib import suppress
@@ -42,6 +43,8 @@ class BridgeRunner:
         instance_lock: InstanceLockPort,
         session_mode: str = "single",
         session_idle_timeout_sec: float = 15.0,
+        stop_intent_enabled: bool = True,
+        stop_intent_phrases: str = "stop,exit,cancel,goodbye,bye",
     ) -> None:
         self.recorder = recorder
         self.client = client
@@ -54,6 +57,8 @@ class BridgeRunner:
         self._session_idle_timeout_sec = session_idle_timeout_sec
         self._session_active = False
         self._session_last_activity: float | None = None
+        self._stop_intent_enabled = stop_intent_enabled
+        self._stop_intent_phrases = self._parse_phrases(stop_intent_phrases)
 
     def _set_state(self, state: BridgeState) -> None:
         if self.state != state:
@@ -91,6 +96,16 @@ class BridgeRunner:
 
             if self._session_mode == "continuous" and not self._session_active:
                 self._start_session(cycle_no)
+
+            if self._stop_intent_enabled and self._is_stop_intent(text):
+                LOGGER.info(
+                    "stop_intent_detected instance=%s cycle=%s",
+                    self.instance_id,
+                    cycle_no,
+                )
+                self._end_session(cycle_no, reason="stop_intent")
+                self._set_state(BridgeState.IDLE)
+                return
 
             LOGGER.info(
                 "speech_recognized instance=%s cycle=%s text_len=%s",
@@ -211,6 +226,34 @@ class BridgeRunner:
                 active,
             )
 
+    @staticmethod
+    def _parse_phrases(value: str) -> list[str]:
+        return [part.strip().lower() for part in value.split(",") if part.strip()]
+
+    @staticmethod
+    def _normalize_text(text: str) -> list[str]:
+        cleaned = re.sub(r"[^\w\s]", " ", text.lower())
+        return [part for part in cleaned.split() if part]
+
+    def _is_stop_intent(self, text: str) -> bool:
+        tokens = self._normalize_text(text)
+        if not tokens:
+            return False
+        for phrase in self._stop_intent_phrases:
+            phrase_tokens = self._normalize_text(phrase)
+            if not phrase_tokens:
+                continue
+            if phrase_tokens == tokens:
+                return True
+            if len(phrase_tokens) == 1:
+                if phrase_tokens[0] in tokens and len(tokens) <= 3:
+                    return True
+            elif len(phrase_tokens) <= len(tokens):
+                for idx in range(len(tokens) - len(phrase_tokens) + 1):
+                    if tokens[idx : idx + len(phrase_tokens)] == phrase_tokens:
+                        return True
+        return False
+
     def shutdown(self) -> None:
         """Release runtime resources in deterministic order."""
         LOGGER.info("bridge_shutdown_start instance=%s", self.instance_id)
@@ -269,6 +312,8 @@ def build_runner() -> BridgeRunner:
             instance_lock=instance_lock,
             session_mode=config.voice_session_mode,
             session_idle_timeout_sec=config.session_idle_timeout_sec,
+            stop_intent_enabled=config.stop_intent_enabled,
+            stop_intent_phrases=config.stop_intent_phrases,
         )
     except Exception:
         instance_lock.release()

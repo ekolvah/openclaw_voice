@@ -30,6 +30,9 @@
 7. Set `WAKEWORD_BACKEND` explicitly (`pvporcupine` or `openwakeword`).
 8. If using `pvporcupine`, provide `PICOVOICE_ACCESS_KEY`.
 9. If using `openwakeword`, optionally set `OPENWAKEWORD_MODEL_PATHS` and `OPENWAKEWORD_INFERENCE_FRAMEWORK`.
+10. Use `VOICE_SESSION_MODE=continuous` to enable follow-up turns without repeating the wake word.
+11. Tune `SESSION_IDLE_TIMEOUT_SEC` to decide when an idle conversation returns to single-turn mode.
+12. Keep `STOP_INTENT_ENABLED=true` and customize `STOP_INTENT_PHRASES` to allow a spoken exit (include your target language phrases).
 
 ## Smoke Test
 - Run `python scripts/smoke_test_voice.py --skip-bridge-run` for the local-first configuration checks.
