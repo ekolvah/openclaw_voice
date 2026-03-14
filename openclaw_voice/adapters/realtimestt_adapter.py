@@ -68,6 +68,11 @@ class RealtimeSTTRecorderAdapter:
         on_wakeword_detected = self._on_wakeword_detected if wake_word_enabled else None
         openwakeword_model_paths = ""
         openwakeword_inference_framework = "onnx"
+        LOGGER.info(
+            "wakeword_backend_select backend=%s wake_word_enabled=%s",
+            wakeword_backend or "disabled",
+            wake_word_enabled,
+        )
         if wakeword_backend == "pvporcupine":
             if self._picovoice_access_key:
                 os.environ["PICOVOICE_ACCESS_KEY"] = self._picovoice_access_key
