@@ -43,6 +43,32 @@ def test_unsupported_voice_session_mode_raises(monkeypatch: pytest.MonkeyPatch) 
         VoiceConfig.from_env()
 
 
+def test_unsupported_wakeword_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("WAKEWORD_BACKEND", "other")
+
+    with pytest.raises(RuntimeError, match="WAKEWORD_BACKEND"):
+        VoiceConfig.from_env()
+
+
+def test_pvporcupine_requires_wake_word(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("WAKEWORD_BACKEND", "pvporcupine")
+    monkeypatch.setenv("WAKE_WORD", "")
+
+    with pytest.raises(RuntimeError, match="WAKE_WORD"):
+        VoiceConfig.from_env()
+
+
+def test_normalizes_wakeword_backend_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("WAKEWORD_BACKEND", "oww")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.wakeword_backend == "openwakeword"
+
+
 def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("TTS_PROVIDER", "silero")

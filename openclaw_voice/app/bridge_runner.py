@@ -250,6 +250,10 @@ def build_runner() -> BridgeRunner:
             wake_sensitivity=config.wake_sensitivity,
             silence_seconds=config.silence_seconds,
             on_wakeword_detected=BridgeRunner._beep,
+            wakeword_backend=config.wakeword_backend,
+            picovoice_access_key=config.picovoice_access_key,
+            openwakeword_model_paths=config.openwakeword_model_paths,
+            openwakeword_inference_framework=config.openwakeword_inference_framework,
         )
         client = OpenClawClient(
             base_url=config.openclaw_gateway_url,

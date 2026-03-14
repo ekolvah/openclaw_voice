@@ -27,6 +27,9 @@
 4. Leave `TTS_FALLBACK_PROVIDER=` empty unless you add another provider later.
 5. Adjust `SILERO_*` values only if you intentionally want a different model or speaker.
 6. Use `SPEECH_MAX_CHUNK_CHARS` to control how aggressively long replies are split before playback.
+7. Set `WAKEWORD_BACKEND` explicitly (`pvporcupine` or `openwakeword`).
+8. If using `pvporcupine`, provide `PICOVOICE_ACCESS_KEY`.
+9. If using `openwakeword`, optionally set `OPENWAKEWORD_MODEL_PATHS` and `OPENWAKEWORD_INFERENCE_FRAMEWORK`.
 
 ## Smoke Test
 - Run `python scripts/smoke_test_voice.py --skip-bridge-run` for the local-first configuration checks.
