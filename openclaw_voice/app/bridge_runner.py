@@ -42,6 +42,8 @@ class BridgeRunner:
         instance_lock: InstanceLockPort,
         session_mode: str = "single",
         session_idle_timeout_sec: float = 15.0,
+        stop_intent_enabled: bool = True,
+        stop_intent_phrases: str = "stop,exit,cancel,goodbye,bye",
     ) -> None:
         self.recorder = recorder
         self.client = client
@@ -54,6 +56,8 @@ class BridgeRunner:
         self._session_idle_timeout_sec = session_idle_timeout_sec
         self._session_active = False
         self._session_last_activity: float | None = None
+        self._stop_intent_enabled = stop_intent_enabled
+        self._stop_intent_phrases = self._parse_phrases(stop_intent_phrases)
 
     def _set_state(self, state: BridgeState) -> None:
         if self.state != state:
@@ -91,6 +95,16 @@ class BridgeRunner:
 
             if self._session_mode == "continuous" and not self._session_active:
                 self._start_session(cycle_no)
+
+            if self._stop_intent_enabled and self._is_stop_intent(text):
+                LOGGER.info(
+                    "stop_intent_detected instance=%s cycle=%s",
+                    self.instance_id,
+                    cycle_no,
+                )
+                self._end_session(cycle_no, reason="stop_intent")
+                self._set_state(BridgeState.IDLE)
+                return
 
             LOGGER.info(
                 "speech_recognized instance=%s cycle=%s text_len=%s",
@@ -211,6 +225,16 @@ class BridgeRunner:
                 active,
             )
 
+    @staticmethod
+    def _parse_phrases(value: str) -> list[str]:
+        return [part.strip().lower() for part in value.split(",") if part.strip()]
+
+    def _is_stop_intent(self, text: str) -> bool:
+        normalized = text.strip().lower()
+        if not normalized:
+            return False
+        return any(phrase == normalized for phrase in self._stop_intent_phrases)
+
     def shutdown(self) -> None:
         """Release runtime resources in deterministic order."""
         LOGGER.info("bridge_shutdown_start instance=%s", self.instance_id)
@@ -269,6 +293,8 @@ def build_runner() -> BridgeRunner:
             instance_lock=instance_lock,
             session_mode=config.voice_session_mode,
             session_idle_timeout_sec=config.session_idle_timeout_sec,
+            stop_intent_enabled=config.stop_intent_enabled,
+            stop_intent_phrases=config.stop_intent_phrases,
         )
     except Exception:
         instance_lock.release()

@@ -60,6 +60,23 @@ def test_pvporcupine_requires_wake_word(monkeypatch: pytest.MonkeyPatch) -> None
         VoiceConfig.from_env()
 
 
+def test_invalid_stop_intent_bool_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("STOP_INTENT_ENABLED", "maybe")
+
+    with pytest.raises(RuntimeError, match="STOP_INTENT_ENABLED"):
+        VoiceConfig.from_env()
+
+
+def test_missing_stop_intent_phrases_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("STOP_INTENT_ENABLED", "true")
+    monkeypatch.setenv("STOP_INTENT_PHRASES", "")
+
+    with pytest.raises(RuntimeError, match="STOP_INTENT_PHRASES"):
+        VoiceConfig.from_env()
+
+
 def test_normalizes_wakeword_backend_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("WAKEWORD_BACKEND", "oww")
