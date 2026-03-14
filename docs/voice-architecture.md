@@ -25,6 +25,8 @@
 2. Set `OPENCLAW_GATEWAY_TOKEN`.
 3. Keep `TTS_PROVIDER=silero` for the default local setup.
 4. Leave `TTS_FALLBACK_PROVIDER=` empty unless you add another provider later.
+   If you add a premium provider, set `TTS_FALLBACK_PROVIDER=silero` so the bridge
+   can fall back to the local mode when the premium path fails.
 5. Adjust `SILERO_*` values only if you intentionally want a different model or speaker.
 6. Use `SPEECH_MAX_CHUNK_CHARS` to control how aggressively long replies are split before playback.
 7. Set `WAKEWORD_BACKEND` explicitly (`pvporcupine` or `openwakeword`).
@@ -33,6 +35,11 @@
 10. Use `VOICE_SESSION_MODE=continuous` to enable follow-up turns without repeating the wake word.
 11. Tune `SESSION_IDLE_TIMEOUT_SEC` to decide when an idle conversation returns to single-turn mode.
 12. Keep `STOP_INTENT_ENABLED=true` and customize `STOP_INTENT_PHRASES` to allow a spoken exit (include your target language phrases).
+
+## Fallback Mode
+Silero remains the baseline local fallback. It is reliable and installable without
+API keys, but it is not UX‑equivalent to a premium voice provider. Use it as the
+safe fallback path and expect lower naturalness than cloud voices.
 
 ## Smoke Test
 - Run `python scripts/smoke_test_voice.py --skip-bridge-run` for the local-first configuration checks.

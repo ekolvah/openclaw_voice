@@ -117,6 +117,12 @@ def build_tts_service(config: VoiceConfig) -> TTSService:
         if config.tts_fallback_provider and config.tts_fallback_provider != config.tts_provider
         else None
     )
+    if fallback_provider is not None:
+        LOGGER.info(
+            "tts_fallback_configured primary=%s fallback=%s",
+            primary_provider.name,
+            fallback_provider.name,
+        )
     shaper = RussianSpeechShaper(max_chunk_chars=config.speech_max_chunk_chars)
     return TTSService(
         primary_provider=primary_provider,
