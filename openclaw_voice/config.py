@@ -42,6 +42,8 @@ class VoiceConfig:
     wake_sensitivity: float
     silence_seconds: float
     history_limit: int
+    voice_session_mode: str = "single"
+    session_idle_timeout_sec: float = 15.0
     tts_provider: str = "silero"
     tts_fallback_provider: str = ""
     silero_model_source: str = "snakers4/silero-models"
@@ -68,6 +70,8 @@ class VoiceConfig:
             wake_sensitivity=_env_float("WAKE_SENSITIVITY", 0.6),
             silence_seconds=_env_float("SILENCE_SECONDS", 1.5),
             history_limit=_env_int("HISTORY_LIMIT", 20),
+            voice_session_mode=os.getenv("VOICE_SESSION_MODE", "single").strip().lower(),
+            session_idle_timeout_sec=_env_float("SESSION_IDLE_TIMEOUT_SEC", 15.0),
             tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
             tts_fallback_provider=os.getenv("TTS_FALLBACK_PROVIDER", "").strip().lower(),
             silero_model_source=os.getenv(
@@ -87,6 +91,10 @@ class VoiceConfig:
 
 def _validate_tts_config(config: VoiceConfig) -> None:
     supported = {"silero"}
+    if config.voice_session_mode not in {"single", "continuous"}:
+        raise RuntimeError(
+            f"Unsupported VOICE_SESSION_MODE: {config.voice_session_mode}"
+        )
     if config.tts_provider not in supported:
         raise RuntimeError(f"Unsupported TTS_PROVIDER: {config.tts_provider}")
     if config.tts_fallback_provider and config.tts_fallback_provider not in supported:

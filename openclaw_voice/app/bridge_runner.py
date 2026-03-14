@@ -26,6 +26,7 @@ class BridgeState(StrEnum):
 
     IDLE = "IDLE"
     LISTENING = "LISTENING"
+    CONVERSING = "CONVERSING"
     PROCESSING = "PROCESSING"
     SPEAKING = "SPEAKING"
 
@@ -39,6 +40,8 @@ class BridgeRunner:
         client: OpenClawClientPort,
         tts: TTSServicePort,
         instance_lock: InstanceLockPort,
+        session_mode: str = "single",
+        session_idle_timeout_sec: float = 15.0,
     ) -> None:
         self.recorder = recorder
         self.client = client
@@ -47,6 +50,10 @@ class BridgeRunner:
         self.state = BridgeState.IDLE
         self.instance_id = uuid.uuid4().hex[:8]
         self._cycle_no = 0
+        self._session_mode = session_mode
+        self._session_idle_timeout_sec = session_idle_timeout_sec
+        self._session_active = False
+        self._session_last_activity: float | None = None
 
     def _set_state(self, state: BridgeState) -> None:
         if self.state != state:
@@ -73,17 +80,17 @@ class BridgeRunner:
         cycle_no = self._cycle_no
         started = time.monotonic()
         LOGGER.info("cycle_start instance=%s cycle=%s", self.instance_id, cycle_no)
-        self._set_state(BridgeState.LISTENING)
+        self._set_state(
+            BridgeState.CONVERSING if self._session_active else BridgeState.LISTENING
+        )
         try:
             text = self.recorder.text().strip()
             if not text:
-                LOGGER.info(
-                    "no_speech_recognized instance=%s cycle=%s",
-                    self.instance_id,
-                    cycle_no,
-                )
-                self._set_state(BridgeState.IDLE)
+                self._handle_no_speech(cycle_no)
                 return
+
+            if self._session_mode == "continuous" and not self._session_active:
+                self._start_session(cycle_no)
 
             LOGGER.info(
                 "speech_recognized instance=%s cycle=%s text_len=%s",
@@ -91,6 +98,7 @@ class BridgeRunner:
                 cycle_no,
                 len(text),
             )
+            self._session_last_activity = time.monotonic()
             self._set_state(BridgeState.PROCESSING)
             reply = self.client.ask(text)
 
@@ -110,7 +118,10 @@ class BridgeRunner:
                 self.instance_id,
                 cycle_no,
             )
-            self._set_state(BridgeState.IDLE)
+            if self._session_active:
+                self._set_state(BridgeState.CONVERSING)
+            else:
+                self._set_state(BridgeState.IDLE)
         except Exception as exc:
             LOGGER.error(
                 "bridge_cycle_error instance=%s cycle=%s error=%s",
@@ -126,6 +137,78 @@ class BridgeRunner:
                 self.instance_id,
                 cycle_no,
                 elapsed,
+            )
+        if self._session_active and self._session_last_activity is None:
+            self._session_last_activity = started
+
+    def _handle_no_speech(self, cycle_no: int) -> None:
+        LOGGER.info(
+            "no_speech_recognized instance=%s cycle=%s",
+            self.instance_id,
+            cycle_no,
+        )
+        if not self._session_active:
+            self._set_state(BridgeState.IDLE)
+            return
+
+        now = time.monotonic()
+        last = self._session_last_activity or now
+        if now - last >= self._session_idle_timeout_sec:
+            self._end_session(cycle_no, reason="idle_timeout")
+            self._set_state(BridgeState.IDLE)
+        else:
+            self._set_state(BridgeState.CONVERSING)
+
+    def _start_session(self, cycle_no: int) -> None:
+        self._session_active = True
+        self._session_last_activity = time.monotonic()
+        self._set_state(BridgeState.CONVERSING)
+        LOGGER.info(
+            "session_start instance=%s cycle=%s mode=%s",
+            self.instance_id,
+            cycle_no,
+            self._session_mode,
+        )
+        self._set_recorder_session_active(True, cycle_no)
+
+    def _end_session(self, cycle_no: int, reason: str) -> None:
+        if not self._session_active:
+            return
+        self._session_active = False
+        self._session_last_activity = None
+        LOGGER.info(
+            "session_end instance=%s cycle=%s reason=%s",
+            self.instance_id,
+            cycle_no,
+            reason,
+        )
+        self._set_recorder_session_active(False, cycle_no)
+
+    def _set_recorder_session_active(self, active: bool, cycle_no: int) -> None:
+        setter = getattr(self.recorder, "set_session_active", None)
+        if callable(setter):
+            try:
+                setter(active)
+                LOGGER.info(
+                    "recorder_session_mode instance=%s cycle=%s active=%s",
+                    self.instance_id,
+                    cycle_no,
+                    active,
+                )
+            except Exception as exc:
+                LOGGER.error(
+                    "recorder_session_mode_error instance=%s cycle=%s active=%s error=%s",
+                    self.instance_id,
+                    cycle_no,
+                    active,
+                    exc,
+                )
+        else:
+            LOGGER.warning(
+                "recorder_session_mode_unsupported instance=%s cycle=%s active=%s",
+                self.instance_id,
+                cycle_no,
+                active,
             )
 
     def shutdown(self) -> None:
@@ -180,6 +263,8 @@ def build_runner() -> BridgeRunner:
             client=client,
             tts=tts,
             instance_lock=instance_lock,
+            session_mode=config.voice_session_mode,
+            session_idle_timeout_sec=config.session_idle_timeout_sec,
         )
     except Exception:
         instance_lock.release()
