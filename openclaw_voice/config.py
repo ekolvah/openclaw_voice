@@ -42,6 +42,10 @@ class VoiceConfig:
     wake_sensitivity: float
     silence_seconds: float
     history_limit: int
+    wakeword_backend: str = "pvporcupine"
+    picovoice_access_key: str = ""
+    openwakeword_model_paths: str = ""
+    openwakeword_inference_framework: str = "onnx"
     voice_session_mode: str = "single"
     session_idle_timeout_sec: float = 15.0
     tts_provider: str = "silero"
@@ -70,6 +74,14 @@ class VoiceConfig:
             wake_sensitivity=_env_float("WAKE_SENSITIVITY", 0.6),
             silence_seconds=_env_float("SILENCE_SECONDS", 1.5),
             history_limit=_env_int("HISTORY_LIMIT", 20),
+            wakeword_backend=_normalize_wakeword_backend(
+                os.getenv("WAKEWORD_BACKEND", "pvporcupine").strip().lower()
+            ),
+            picovoice_access_key=os.getenv("PICOVOICE_ACCESS_KEY", "").strip(),
+            openwakeword_model_paths=os.getenv("OPENWAKEWORD_MODEL_PATHS", "").strip(),
+            openwakeword_inference_framework=os.getenv(
+                "OPENWAKEWORD_INFERENCE_FRAMEWORK", "onnx"
+            ).strip(),
             voice_session_mode=os.getenv("VOICE_SESSION_MODE", "single").strip().lower(),
             session_idle_timeout_sec=_env_float("SESSION_IDLE_TIMEOUT_SEC", 15.0),
             tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
@@ -95,9 +107,25 @@ def _validate_tts_config(config: VoiceConfig) -> None:
         raise RuntimeError(
             f"Unsupported VOICE_SESSION_MODE: {config.voice_session_mode}"
         )
+    if config.wakeword_backend not in {"", "pvporcupine", "openwakeword"}:
+        raise RuntimeError(
+            f"Unsupported WAKEWORD_BACKEND: {config.wakeword_backend}"
+        )
+    if config.wakeword_backend == "pvporcupine" and not config.wake_word:
+        raise RuntimeError("WAKE_WORD must be set when WAKEWORD_BACKEND=pvporcupine")
     if config.tts_provider not in supported:
         raise RuntimeError(f"Unsupported TTS_PROVIDER: {config.tts_provider}")
     if config.tts_fallback_provider and config.tts_fallback_provider not in supported:
         raise RuntimeError(
             f"Unsupported TTS_FALLBACK_PROVIDER: {config.tts_fallback_provider}"
         )
+
+
+def _normalize_wakeword_backend(value: str) -> str:
+    if value in {"", "none", "off"}:
+        return ""
+    if value in {"pvp", "pvporcupine"}:
+        return "pvporcupine"
+    if value in {"oww", "openwakeword", "openwakewords"}:
+        return "openwakeword"
+    return value
