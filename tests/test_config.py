@@ -35,6 +35,14 @@ def test_unsupported_tts_provider_raises(monkeypatch: pytest.MonkeyPatch) -> Non
         VoiceConfig.from_env()
 
 
+def test_unsupported_voice_session_mode_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("VOICE_SESSION_MODE", "unknown")
+
+    with pytest.raises(RuntimeError, match="VOICE_SESSION_MODE"):
+        VoiceConfig.from_env()
+
+
 def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("TTS_PROVIDER", "silero")

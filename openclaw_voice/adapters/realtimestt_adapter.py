@@ -23,19 +23,11 @@ class RealtimeSTTRecorderAdapter:
         silence_seconds: float,
         on_wakeword_detected: Callable[[], None] | None,
     ) -> None:
-        self._recorder = AudioToTextRecorder(
-            wakeword_backend="pvporcupine",
-            wake_words=wake_word,
-            wake_words_sensitivity=wake_sensitivity,
-            on_wakeword_detected=on_wakeword_detected,
-            use_microphone=True,
-            spinner=False,
-            language="ru",
-            silero_sensitivity=0.4,
-            webrtc_sensitivity=3,
-            post_speech_silence_duration=silence_seconds,
-            model="tiny",
-        )
+        self._wake_word = wake_word
+        self._wake_sensitivity = wake_sensitivity
+        self._silence_seconds = silence_seconds
+        self._on_wakeword_detected = on_wakeword_detected
+        self._recorder = self._build_recorder(wake_word_enabled=True)
 
     @property
     def port(self) -> RecorderPort:
@@ -55,6 +47,29 @@ class RealtimeSTTRecorderAdapter:
         LOGGER.info("recorder_shutdown_start")
         self._call_first_available(("shutdown", "close", "terminate", "stop"))
         LOGGER.info("recorder_shutdown_done")
+
+    def set_session_active(self, active: bool) -> None:
+        """Enable or disable wake-word gating for conversation sessions."""
+        self._call_first_available(("shutdown", "close", "terminate", "stop"))
+        self._recorder = self._build_recorder(wake_word_enabled=not active)
+
+    def _build_recorder(self, wake_word_enabled: bool) -> AudioToTextRecorder:
+        wakeword_backend = "pvporcupine" if wake_word_enabled else ""
+        wake_words = self._wake_word if wake_word_enabled else ""
+        on_wakeword_detected = self._on_wakeword_detected if wake_word_enabled else None
+        return AudioToTextRecorder(
+            wakeword_backend=wakeword_backend,
+            wake_words=wake_words,
+            wake_words_sensitivity=self._wake_sensitivity,
+            on_wakeword_detected=on_wakeword_detected,
+            use_microphone=True,
+            spinner=False,
+            language="ru",
+            silero_sensitivity=0.4,
+            webrtc_sensitivity=3,
+            post_speech_silence_duration=self._silence_seconds,
+            model="tiny",
+        )
 
     def _call_first_available(self, methods: tuple[str, ...]) -> None:
         for name in methods:
