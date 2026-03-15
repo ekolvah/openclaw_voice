@@ -12,7 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TextIO
 
-from openclaw_voice.adapters.realtimestt_adapter import RealtimeSTTRecorderAdapter
+from openclaw_voice.adapters.stt_factory import build_recorder
 from openclaw_voice.clients.openclaw_client import OpenClawClient
 from openclaw_voice.config import VoiceConfig
 from openclaw_voice.logging_setup import configure_logging
@@ -85,9 +85,7 @@ class BridgeRunner:
         cycle_no = self._cycle_no
         started = time.monotonic()
         LOGGER.info("cycle_start instance=%s cycle=%s", self.instance_id, cycle_no)
-        self._set_state(
-            BridgeState.CONVERSING if self._session_active else BridgeState.LISTENING
-        )
+        self._set_state(BridgeState.CONVERSING if self._session_active else BridgeState.LISTENING)
         try:
             text = self.recorder.text().strip()
             if not text:
@@ -288,16 +286,7 @@ def build_runner() -> BridgeRunner:
         raise RuntimeError("Another voice bridge instance is already running")
 
     try:
-        adapter = RealtimeSTTRecorderAdapter(
-            wake_word=config.wake_word,
-            wake_sensitivity=config.wake_sensitivity,
-            silence_seconds=config.silence_seconds,
-            on_wakeword_detected=BridgeRunner._beep,
-            wakeword_backend=config.wakeword_backend,
-            picovoice_access_key=config.picovoice_access_key,
-            openwakeword_model_paths=config.openwakeword_model_paths,
-            openwakeword_inference_framework=config.openwakeword_inference_framework,
-        )
+        recorder = build_recorder(config, BridgeRunner._beep)
         client = OpenClawClient(
             base_url=config.openclaw_gateway_url,
             token=config.openclaw_gateway_token,
@@ -306,7 +295,7 @@ def build_runner() -> BridgeRunner:
         )
         tts = build_tts_service(config)
         return BridgeRunner(
-            recorder=adapter.port,
+            recorder=recorder,
             client=client,
             tts=tts,
             instance_lock=instance_lock,

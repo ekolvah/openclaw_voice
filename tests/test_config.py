@@ -51,6 +51,26 @@ def test_unsupported_wakeword_backend_raises(monkeypatch: pytest.MonkeyPatch) ->
         VoiceConfig.from_env()
 
 
+def test_unsupported_stt_provider_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("STT_PROVIDER", "other")
+
+    with pytest.raises(RuntimeError, match="STT_PROVIDER"):
+        VoiceConfig.from_env()
+
+
+def test_groq_provider_requires_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("STT_PROVIDER", "groq")
+
+    with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
+        VoiceConfig.from_env()
+
+    monkeypatch.setenv("GROQ_API_KEY", "key")
+    with pytest.raises(RuntimeError, match="GROQ_STT_MODEL"):
+        VoiceConfig.from_env()
+
+
 def test_pvporcupine_requires_wake_word(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("WAKEWORD_BACKEND", "pvporcupine")

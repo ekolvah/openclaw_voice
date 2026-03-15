@@ -26,7 +26,7 @@ class SileroTTSProvider:
     _model: Any | None = None
 
     def synthesize(self, text: str, out_path: str) -> None:
-        import soundfile  # type: ignore[import-untyped]
+        import soundfile
 
         model = self._load_model()
         audio = model.apply_tts(
