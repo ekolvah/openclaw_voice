@@ -25,6 +25,7 @@ dev = [
   "mypy>=1.10.0",
   "types-requests",
   "pre-commit>=3.8.0",
+  "numpy",
 ]
 
 [tool.setuptools.packages.find]
