@@ -32,9 +32,12 @@
 7. Set `WAKEWORD_BACKEND` explicitly (`pvporcupine` or `openwakeword`).
 8. If using `pvporcupine`, provide `PICOVOICE_ACCESS_KEY`.
 9. If using `openwakeword`, optionally set `OPENWAKEWORD_MODEL_PATHS` and `OPENWAKEWORD_INFERENCE_FRAMEWORK`.
-10. Use `VOICE_SESSION_MODE=continuous` to enable follow-up turns without repeating the wake word.
-11. Tune `SESSION_IDLE_TIMEOUT_SEC` to decide when an idle conversation returns to single-turn mode.
-12. Keep `STOP_INTENT_ENABLED=true` and customize `STOP_INTENT_PHRASES` to allow a spoken exit (include your target language phrases).
+10. Keep `STT_PROVIDER=realtimestt` for the default local transcription.
+11. To use Groq STT, set `STT_PROVIDER=groq` and provide `GROQ_API_KEY`, `GROQ_STT_API_URL`, and `GROQ_STT_MODEL`.
+12. Optionally set `GROQ_STT_LANGUAGE` and `GROQ_STT_TIMEOUT_SEC` for Groq tuning.
+13. Use `VOICE_SESSION_MODE=continuous` to enable follow-up turns without repeating the wake word.
+14. Tune `SESSION_IDLE_TIMEOUT_SEC` to decide when an idle conversation returns to single-turn mode.
+15. Keep `STOP_INTENT_ENABLED=true` and customize `STOP_INTENT_PHRASES` to allow a spoken exit (include your target language phrases).
 
 ## Fallback Mode
 Silero remains the baseline local fallback. It is reliable and installable without
