@@ -12,4 +12,3 @@ realtimesst.log
 openclaw_voice.egg-info/
 .coverage
 .cache/
-openclaw_voice/config.py
