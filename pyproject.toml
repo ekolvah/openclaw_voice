@@ -25,6 +25,7 @@ dev = [
   "mypy>=1.10.0",
   "types-requests",
   "pre-commit>=3.8.0",
+  "numpy",
 ]
 
 [tool.setuptools.packages.find]
@@ -43,7 +44,11 @@ warn_unused_ignores = true
 files = ["openclaw_voice", "voice_bridge.py"]
 
 [[tool.mypy.overrides]]
-module = ["openclaw_voice.adapters.realtimestt_adapter"]
+module = [
+  "openclaw_voice.adapters.realtimestt_adapter",
+  "openclaw_voice.adapters.groqstt_adapter",
+  "openclaw_voice.services.tts_providers",
+]
 disable_error_code = ["import-untyped"]
 
 [tool.pytest.ini_options]

@@ -77,15 +77,15 @@ def test_build_runner_aborts_before_adapter_init_when_lock_is_held(
     def fake_from_env() -> VoiceConfig:
         return config
 
-    def fake_adapter(*args: object, **kwargs: object) -> object:
+    def fake_recorder(*args: object, **kwargs: object) -> object:
         nonlocal adapter_called
         adapter_called = True
-        raise AssertionError("adapter must not initialize when lock is already held")
+        raise AssertionError("recorder must not initialize when lock is already held")
 
     monkeypatch.setattr(
         "openclaw_voice.app.bridge_runner.VoiceConfig.from_env", staticmethod(fake_from_env)
     )
-    monkeypatch.setattr("openclaw_voice.app.bridge_runner.RealtimeSTTRecorderAdapter", fake_adapter)
+    monkeypatch.setattr("openclaw_voice.app.bridge_runner.build_recorder", fake_recorder)
 
     with pytest.raises(RuntimeError, match="already running"):
         bridge_runner.build_runner()

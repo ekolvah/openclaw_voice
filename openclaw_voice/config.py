@@ -55,6 +55,12 @@ class VoiceConfig:
     picovoice_access_key: str = ""
     openwakeword_model_paths: str = ""
     openwakeword_inference_framework: str = "onnx"
+    stt_provider: str = "realtimestt"
+    groq_api_key: str = ""
+    groq_stt_api_url: str = "https://api.groq.com/openai/v1/audio/transcriptions"
+    groq_stt_model: str = ""
+    groq_stt_language: str = "ru"
+    groq_stt_timeout_sec: float = 30.0
     voice_session_mode: str = "single"
     session_idle_timeout_sec: float = 15.0
     stop_intent_enabled: bool = True
@@ -93,6 +99,12 @@ class VoiceConfig:
             openwakeword_inference_framework=os.getenv(
                 "OPENWAKEWORD_INFERENCE_FRAMEWORK", "onnx"
             ).strip(),
+            stt_provider=os.getenv("STT_PROVIDER", "realtimestt").strip().lower(),
+            groq_api_key=os.getenv("GROQ_API_KEY", "").strip(),
+            groq_stt_api_url=os.getenv("GROQ_STT_API_URL", "").strip(),
+            groq_stt_model=os.getenv("GROQ_STT_MODEL", "").strip(),
+            groq_stt_language=os.getenv("GROQ_STT_LANGUAGE", "ru").strip(),
+            groq_stt_timeout_sec=_env_float("GROQ_STT_TIMEOUT_SEC", 30.0),
             voice_session_mode=os.getenv("VOICE_SESSION_MODE", "single").strip().lower(),
             session_idle_timeout_sec=_env_float("SESSION_IDLE_TIMEOUT_SEC", 15.0),
             stop_intent_enabled=_env_bool("STOP_INTENT_ENABLED", True),
@@ -101,9 +113,7 @@ class VoiceConfig:
             ).strip(),
             tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
             tts_fallback_provider=os.getenv("TTS_FALLBACK_PROVIDER", "").strip().lower(),
-            silero_model_source=os.getenv(
-                "SILERO_MODEL_SOURCE", "snakers4/silero-models"
-            ).strip(),
+            silero_model_source=os.getenv("SILERO_MODEL_SOURCE", "snakers4/silero-models").strip(),
             silero_language=os.getenv("SILERO_LANGUAGE", "ru").strip(),
             silero_model_id=os.getenv("SILERO_MODEL_ID", "v4_ru").strip(),
             silero_speaker=os.getenv("SILERO_SPEAKER", "xenia").strip(),
@@ -119,25 +129,24 @@ class VoiceConfig:
 def _validate_tts_config(config: VoiceConfig) -> None:
     supported = {"silero"}
     if config.voice_session_mode not in {"single", "continuous"}:
-        raise RuntimeError(
-            f"Unsupported VOICE_SESSION_MODE: {config.voice_session_mode}"
-        )
+        raise RuntimeError(f"Unsupported VOICE_SESSION_MODE: {config.voice_session_mode}")
     if config.wakeword_backend not in {"", "pvporcupine", "openwakeword"}:
-        raise RuntimeError(
-            f"Unsupported WAKEWORD_BACKEND: {config.wakeword_backend}"
-        )
+        raise RuntimeError(f"Unsupported WAKEWORD_BACKEND: {config.wakeword_backend}")
     if config.wakeword_backend == "pvporcupine" and not config.wake_word:
         raise RuntimeError("WAKE_WORD must be set when WAKEWORD_BACKEND=pvporcupine")
+    if config.stt_provider not in {"realtimestt", "groq"}:
+        raise RuntimeError(f"Unsupported STT_PROVIDER: {config.stt_provider}")
+    if config.stt_provider == "groq":
+        if not config.groq_api_key:
+            raise RuntimeError("GROQ_API_KEY must be set when STT_PROVIDER=groq")
+        if not config.groq_stt_model:
+            raise RuntimeError("GROQ_STT_MODEL must be set when STT_PROVIDER=groq")
     if config.stop_intent_enabled and not config.stop_intent_phrases:
-        raise RuntimeError(
-            "STOP_INTENT_PHRASES must be set when STOP_INTENT_ENABLED=true"
-        )
+        raise RuntimeError("STOP_INTENT_PHRASES must be set when STOP_INTENT_ENABLED=true")
     if config.tts_provider not in supported:
         raise RuntimeError(f"Unsupported TTS_PROVIDER: {config.tts_provider}")
     if config.tts_fallback_provider and config.tts_fallback_provider not in supported:
-        raise RuntimeError(
-            f"Unsupported TTS_FALLBACK_PROVIDER: {config.tts_fallback_provider}"
-        )
+        raise RuntimeError(f"Unsupported TTS_FALLBACK_PROVIDER: {config.tts_fallback_provider}")
 
 
 def _normalize_wakeword_backend(value: str) -> str:
