@@ -7,6 +7,16 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
+SUPPORTED_TTS_PROVIDERS = {"silero", "elevenlabs"}
+ELEVENLABS_PCM_OUTPUT_FORMATS = {
+    "pcm_8000",
+    "pcm_16000",
+    "pcm_22050",
+    "pcm_24000",
+    "pcm_44100",
+    "pcm_48000",
+}
+
 
 def _require_env(name: str) -> str:
     value = os.getenv(name, "").strip()
@@ -67,6 +77,12 @@ class VoiceConfig:
     stop_intent_phrases: str = "stop,exit,cancel,goodbye,bye"
     tts_provider: str = "silero"
     tts_fallback_provider: str = ""
+    elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = ""
+    elevenlabs_model_id: str = ""
+    elevenlabs_output_format: str = "pcm_24000"
+    elevenlabs_connect_timeout_sec: float = 5.0
+    elevenlabs_read_timeout_sec: float = 30.0
     silero_model_source: str = "snakers4/silero-models"
     silero_language: str = "ru"
     silero_model_id: str = "v4_ru"
@@ -113,6 +129,14 @@ class VoiceConfig:
             ).strip(),
             tts_provider=os.getenv("TTS_PROVIDER", "silero").strip().lower(),
             tts_fallback_provider=os.getenv("TTS_FALLBACK_PROVIDER", "").strip().lower(),
+            elevenlabs_api_key=os.getenv("ELEVENLABS_API_KEY", "").strip(),
+            elevenlabs_voice_id=os.getenv("ELEVENLABS_VOICE_ID", "").strip(),
+            elevenlabs_model_id=os.getenv("ELEVENLABS_MODEL_ID", "").strip(),
+            elevenlabs_output_format=os.getenv("ELEVENLABS_OUTPUT_FORMAT", "pcm_24000")
+            .strip()
+            .lower(),
+            elevenlabs_connect_timeout_sec=_env_float("ELEVENLABS_CONNECT_TIMEOUT_SEC", 5.0),
+            elevenlabs_read_timeout_sec=_env_float("ELEVENLABS_READ_TIMEOUT_SEC", 30.0),
             silero_model_source=os.getenv("SILERO_MODEL_SOURCE", "snakers4/silero-models").strip(),
             silero_language=os.getenv("SILERO_LANGUAGE", "ru").strip(),
             silero_model_id=os.getenv("SILERO_MODEL_ID", "v4_ru").strip(),
@@ -127,7 +151,6 @@ class VoiceConfig:
 
 
 def _validate_tts_config(config: VoiceConfig) -> None:
-    supported = {"silero"}
     if config.voice_session_mode not in {"single", "continuous"}:
         raise RuntimeError(f"Unsupported VOICE_SESSION_MODE: {config.voice_session_mode}")
     if config.wakeword_backend not in {"", "pvporcupine", "openwakeword"}:
@@ -143,10 +166,59 @@ def _validate_tts_config(config: VoiceConfig) -> None:
             raise RuntimeError("GROQ_STT_MODEL must be set when STT_PROVIDER=groq")
     if config.stop_intent_enabled and not config.stop_intent_phrases:
         raise RuntimeError("STOP_INTENT_PHRASES must be set when STOP_INTENT_ENABLED=true")
-    if config.tts_provider not in supported:
+    if config.tts_provider not in SUPPORTED_TTS_PROVIDERS:
         raise RuntimeError(f"Unsupported TTS_PROVIDER: {config.tts_provider}")
-    if config.tts_fallback_provider and config.tts_fallback_provider not in supported:
+    if (
+        config.tts_fallback_provider
+        and config.tts_fallback_provider not in SUPPORTED_TTS_PROVIDERS
+    ):
         raise RuntimeError(f"Unsupported TTS_FALLBACK_PROVIDER: {config.tts_fallback_provider}")
+    _validate_elevenlabs_config(config)
+
+
+def _validate_elevenlabs_config(config: VoiceConfig) -> None:
+    using_elevenlabs = "elevenlabs" in {
+        config.tts_provider,
+        config.tts_fallback_provider,
+    }
+    provided_required_fields = {
+        "ELEVENLABS_API_KEY": config.elevenlabs_api_key,
+        "ELEVENLABS_VOICE_ID": config.elevenlabs_voice_id,
+        "ELEVENLABS_MODEL_ID": config.elevenlabs_model_id,
+    }
+    any_required_set = any(provided_required_fields.values())
+    if not using_elevenlabs and not any_required_set:
+        return
+
+    missing = [name for name, value in provided_required_fields.items() if not value]
+    if missing:
+        provider_context = (
+            " when TTS_PROVIDER or TTS_FALLBACK_PROVIDER is set to elevenlabs"
+            if using_elevenlabs
+            else " when any ElevenLabs config is provided"
+        )
+        raise RuntimeError(
+            f"Missing required ElevenLabs environment variable: {missing[0]}{provider_context}"
+        )
+    if config.elevenlabs_output_format not in ELEVENLABS_PCM_OUTPUT_FORMATS:
+        allowed = ", ".join(sorted(ELEVENLABS_PCM_OUTPUT_FORMATS))
+        raise RuntimeError(
+            "ELEVENLABS_OUTPUT_FORMAT must be one of the supported PCM formats: "
+            f"{allowed}. Got: {config.elevenlabs_output_format}"
+        )
+    _validate_positive_timeout(
+        "ELEVENLABS_CONNECT_TIMEOUT_SEC",
+        config.elevenlabs_connect_timeout_sec,
+    )
+    _validate_positive_timeout(
+        "ELEVENLABS_READ_TIMEOUT_SEC",
+        config.elevenlabs_read_timeout_sec,
+    )
+
+
+def _validate_positive_timeout(name: str, value: float) -> None:
+    if value <= 0:
+        raise RuntimeError(f"{name} must be greater than 0. Got: {value}")
 
 
 def _normalize_wakeword_backend(value: str) -> str:

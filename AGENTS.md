@@ -61,6 +61,7 @@ This repository uses these rules for any AI coding assistant session.
 - Use chat for discussion only; persist accepted work items in Issues.
 - Link non-trivial changes to an Issue and keep acceptance criteria there.
 - Use GitHub PRs as the system of record for code review, validation evidence, and merge decisions.
+- For code-changing work, do not close an implementation issue just because changes exist in a local branch or remote branch; close it only after a linked PR is merged into trunk. Prefer PR closing keywords such as `Closes #...` over manual issue closure.
 - Run a local AI code review before opening a PR for any non-trivial change.
 - Keep PRs small and single-purpose; prefer one issue-sized change per PR.
 - Summarize AI review findings in the PR, including any fixes made or explicit residual risks.
@@ -80,3 +81,4 @@ This repository uses these rules for any AI coding assistant session.
 - Logs are sufficient to diagnose failures without reproducing locally.
 - Lint/type/tests pass.
 - No new avoidable support burden introduced.
+- For code-changing issues, the linked PR is merged into trunk before the issue is considered done or closed.

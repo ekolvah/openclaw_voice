@@ -9,6 +9,7 @@
 ## Spoken Output Layer
 - Default provider: `Silero`
 - Default fallback: disabled for the out-of-box local-first setup
+- ElevenLabs config keys are available for the upcoming low-latency PCM path, but that runtime path is not implemented yet in the current step
 - Future API-based providers can be added behind the same provider contract without changing `OpenClaw`
 - Speech shaping happens in the bridge before TTS so Telegram and other text channels keep the original text behavior
 
