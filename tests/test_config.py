@@ -289,7 +289,7 @@ def test_elevenlabs_fields_are_loaded_from_env(monkeypatch: pytest.MonkeyPatch) 
 
     cfg = VoiceConfig.from_env()
 
-    assert cfg.elevenlabs_api_key == "key"
+    assert cfg.elevenlabs_api_key == "key"  # pragma: allowlist secret
     assert cfg.elevenlabs_voice_id == "voice"
     assert cfg.elevenlabs_model_id == "model"
     assert cfg.elevenlabs_output_format == "pcm_16000"
