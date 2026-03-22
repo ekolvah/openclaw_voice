@@ -10,25 +10,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Classify changed files
+        id: changes
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            code_relevant:
+              - 'openclaw_voice/**'
+              - 'tests/**'
+              - 'pyproject.toml'
+              - '.pre-commit-config.yaml'
+              - '.github/workflows/**'
+              - 'requirements*.txt'
+              - 'voice_bridge.py'
+              - 'scripts/**/*.py'
+
+      - name: Full validation required
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
+        run: echo "Running full CI validation because code-relevant files changed or this is a push build."
+
+      - name: Docs/process-only change detected
+        if: github.event_name == 'pull_request' && steps.changes.outputs.code_relevant != 'true'
+        run: echo "Skipping dependency install and quality gates because this PR only changes docs/process files."
+
       - name: Setup Python
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -r requirements-cpu.txt
 
       - name: Secrets
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
         run: pre-commit run detect-secrets --all-files --show-diff-on-failure
 
       - name: Ruff
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
         run: ruff check .
 
       - name: Mypy
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
         run: mypy .
 
       - name: Pytest
+        if: github.event_name != 'pull_request' || steps.changes.outputs.code_relevant == 'true'
         run: pytest -v
