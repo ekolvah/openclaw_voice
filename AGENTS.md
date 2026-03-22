@@ -45,6 +45,7 @@ This repository uses these rules for any AI coding assistant session.
 ## Change Process
 - Treat GitHub Issues as the system of record for bugs, features, and tech debt.
 - For any multi-step feature or refactor, create or update a master issue / epic before creating implementation tasks.
+- Optimize for token-efficient collaboration by keeping durable decisions in Issues and PRs instead of long chat threads.
 - Every child issue under an epic must include:
   - `Parent: #...`
   - `Depends on: ...`
@@ -58,9 +59,12 @@ This repository uses these rules for any AI coding assistant session.
 - When changing execution order or scope, update the parent roadmap and dependency fields, not just the child issue text.
 - Prefer atomic issues with one responsibility each; do not combine config, contracts, implementation, tests, and docs in one issue unless explicitly justified.
 - If an issue grows beyond a single responsibility, split it into smaller issues instead of continuing to expand it.
+- Prefer short, linear issue chains over broad mixed-scope tasks so each session can load only the current step's context.
 - Use chat for discussion only; persist accepted work items in Issues.
+- Record accepted defaults, non-goals, and acceptance criteria in the linked Issue rather than leaving them only in chat.
 - Link non-trivial changes to an Issue and keep acceptance criteria there.
 - Use GitHub PRs as the system of record for code review, validation evidence, and merge decisions.
+- Record validation evidence and AI review findings in the PR so follow-up sessions can read the PR instead of replaying the chat.
 - For code-changing work, do not close an implementation issue just because changes exist in a local branch or remote branch; close it only after a linked PR is merged into trunk. Prefer PR closing keywords such as `Closes #...` over manual issue closure.
 - Run a local AI code review before opening a PR for any non-trivial change.
 - Keep PRs small and single-purpose; prefer one issue-sized change per PR.
@@ -72,6 +76,17 @@ This repository uses these rules for any AI coding assistant session.
 - Preserve backward-compatible entrypoints unless explicitly requested.
 - Update `.env.example` and docs when config changes.
 - Never commit secrets, runtime lock files, generated audio, or local caches.
+
+## Session Handoff
+- Start each new coding session with a compact handoff:
+  - issue or PR number
+  - one-sentence goal
+  - one-sentence non-goal
+  - likely relevant files, if known
+  - whether the request is plan-only, review, or implementation
+- Prefer delta-oriented requests such as "review only the diff against main", "diagnose only the failing CI job", or "inspect `config.py` and `tests/test_config.py` only".
+- Reuse stable artifacts by reference instead of restating them in full: issue body for requirements, PR body for acceptance coverage, `AGENTS.md` for policy, and docs for architecture background.
+- Ask for summaries of existing artifacts instead of repeating context in chat when the artifact already exists.
 
 ## Definition of Done
 - Behavior implemented and verified.
