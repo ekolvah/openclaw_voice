@@ -2,6 +2,7 @@
 
 ## Issue Structure Policy
 - Treat issue structure as mandatory workflow, not optional guidance.
+- Optimize for token-efficient collaboration by reusing issue and PR artifacts instead of rebuilding context from long chat history.
 - For any multi-step feature, refactor, or roadmap item, first create or update a master issue / epic.
 - Every child issue under an epic must include:
   - `Parent: #...`
@@ -17,6 +18,8 @@
 - Prefer atomic issues with one responsibility each: config, contracts, provider, playback, concurrency, docs, or tests.
 - Do not create broad mixed-scope issues that combine multiple responsibilities unless explicitly requested and justified.
 - If a new issue belongs to an epic, use the child task form instead of the standalone feature form.
+- When enough durable context exists in an issue or PR, summarize it instead of asking the user to restate it in chat.
+- Prefer delta-oriented exploration such as current issue, current PR, changed files, or failing CI job before reading broader repository context.
 
 ## Naming Conventions
 - Use `[Epic] ...` for top-level cross-cutting work.

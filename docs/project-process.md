@@ -7,6 +7,7 @@ This repository uses GitHub as the system of record.
 - Chat is for discussion, exploration, and debugging.
 - GitHub Issues are the source of truth for bugs, features, and tech debt.
 - GitHub PRs are the source of truth for code review, validation evidence, and merge decisions.
+- Optimize for token-efficient collaboration: durable decisions belong in Issues and PRs, not only in chat.
 - Optimize for minimum future support cost and minimum future bug-fix cost, not just short-term delivery speed.
 - Prefer declarative implementations; use imperative code only where integration boundaries make it necessary.
 - Write repository automation and support scripts in Python by default.
@@ -15,6 +16,7 @@ This repository uses GitHub as the system of record.
 - Every pull request should close or reference an Issue.
 - Every non-trivial pull request should include a local AI review summary.
 - Prefer small PRs that solve one issue-sized problem.
+- Prefer one issue = one responsibility = one PR; split config, contracts, implementation, tests, and docs unless they are inseparable.
 - Default merge strategy is squash merge.
 
 ## Issue Types
@@ -51,6 +53,27 @@ This repository uses GitHub as the system of record.
 6. Run a local AI review for any non-trivial change using [docs/ai-review-checklist.md](ai-review-checklist.md).
 7. Open a small PR that references the Issue, records validation evidence, and summarizes AI review findings.
 8. Merge with squash merge after CI passes and review findings are resolved or explicitly accepted.
+
+## Session Handoff
+
+Start a new AI coding session with the smallest complete handoff that still fixes the right problem:
+- issue or PR number
+- one-sentence goal
+- one-sentence non-goal
+- likely relevant files, if known
+- whether the request is plan-only, review, or implementation
+
+Prefer delta-oriented requests:
+- "read issue #45 and summarize constraints in 5 bullets"
+- "review only the diff against main"
+- "diagnose only the failing CI job"
+- "inspect `config.py` and `tests/test_config.py` only"
+
+Prefer artifact reuse over chat restatement:
+- issue body for requirements, defaults, non-goals, and acceptance criteria
+- PR body for validation evidence and AI review findings
+- `AGENTS.md` for repository policy
+- architecture docs for background
 
 ## PR Requirements
 
