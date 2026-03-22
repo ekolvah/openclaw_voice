@@ -1,8 +1,14 @@
 name: Feature request
-description: Capture a user-facing change as a scoped task.
+description: Capture a standalone single-step feature that is not part of a larger epic.
 title: "feature: "
 labels: ["type:feature", "needs-triage"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only for a truly atomic standalone task.
+
+        If the work is part of a multi-step feature, create or update an epic and use the Child task form instead.
   - type: textarea
     id: goal
     attributes:
@@ -16,6 +22,16 @@ body:
       label: User value
     validations:
       required: true
+  - type: dropdown
+    id: issue_scope
+    attributes:
+      label: Issue type
+      description: Multi-step work must use an epic plus child tasks instead of this form.
+      options:
+        - Standalone single-step task
+        - Part of a larger epic
+    validations:
+      required: true
   - type: textarea
     id: scope
     attributes:
@@ -27,10 +43,20 @@ body:
     id: out_of_scope
     attributes:
       label: Out of scope
+    validations:
+      required: true
+  - type: textarea
+    id: current_action
+    attributes:
+      label: Current action
+      description: State what should be done now in one or two sentences.
+    validations:
+      required: true
   - type: textarea
     id: implementation_notes
     attributes:
       label: Implementation notes
+      description: If this turns out to be part of a larger epic, stop and convert it into an epic plus child tasks.
   - type: textarea
     id: acceptance
     attributes:
@@ -44,3 +70,4 @@ body:
     id: risks
     attributes:
       label: Risks
+      description: Note blockers, dependencies, or reasons this issue should remain standalone.

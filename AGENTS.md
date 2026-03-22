@@ -44,6 +44,20 @@ This repository uses these rules for any AI coding assistant session.
 
 ## Change Process
 - Treat GitHub Issues as the system of record for bugs, features, and tech debt.
+- For any multi-step feature or refactor, create or update a master issue / epic before creating implementation tasks.
+- Every child issue under an epic must include:
+  - `Parent: #...`
+  - `Depends on: ...`
+  - `Blocks: ...` when applicable
+  - `Current action`
+  - `Goal`
+  - `Non-goals`
+  - `Acceptance criteria`
+- Every epic must include a `## Roadmap` checklist listing child issues in execution order.
+- Ordered implementation chains must use title prefixes such as `[1/6]`, `[2/6]`, `[Phase 2]`, or `[Later]`.
+- When changing execution order or scope, update the parent roadmap and dependency fields, not just the child issue text.
+- Prefer atomic issues with one responsibility each; do not combine config, contracts, implementation, tests, and docs in one issue unless explicitly justified.
+- If an issue grows beyond a single responsibility, split it into smaller issues instead of continuing to expand it.
 - Use chat for discussion only; persist accepted work items in Issues.
 - Link non-trivial changes to an Issue and keep acceptance criteria there.
 - Use GitHub PRs as the system of record for code review, validation evidence, and merge decisions.

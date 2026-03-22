@@ -1,0 +1,78 @@
+name: Child task
+description: Create a decomposed task under an existing epic with explicit order and dependencies.
+title: "[1/1] "
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for any issue that belongs to a larger epic.
+
+        A child task without a parent, order, dependencies, current action, and acceptance criteria is not correctly formed for this repository.
+  - type: input
+    id: parent_issue
+    attributes:
+      label: Parent issue
+      description: Reference the master issue or epic, for example `#36`.
+      placeholder: "#36"
+    validations:
+      required: true
+  - type: input
+    id: phase_order
+    attributes:
+      label: Phase / Order
+      description: Use a title prefix like `[1/6]`, `[2/6]`, or `[Phase 2]`.
+      placeholder: "[1/6]"
+    validations:
+      required: true
+  - type: input
+    id: depends_on
+    attributes:
+      label: Depends on
+      description: List blocking issues, or write `none` if this is the first step.
+      placeholder: "#45"
+    validations:
+      required: true
+  - type: input
+    id: blocks
+    attributes:
+      label: Blocks
+      description: List downstream issues blocked by this task, if any.
+      placeholder: "#46, #47"
+  - type: textarea
+    id: current_action
+    attributes:
+      label: Current action
+      description: State what should be done now and whether later tasks must wait.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What narrow outcome does this task deliver?
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: State what this issue must not implement.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks / constraints
+      description: Capture sequencing risks, contract constraints, or migration caveats.
+    validations:
+      required: true

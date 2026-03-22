@@ -1,0 +1,58 @@
+name: Epic
+description: Create or update a master issue for a multi-step feature or refactor.
+title: "[Epic] "
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for any multi-step feature, refactor, or roadmap item.
+
+        Every epic must include a roadmap, execution order, and a clear statement of what should be done now.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What end state should this epic achieve?
+    validations:
+      required: true
+  - type: textarea
+    id: user_value
+    attributes:
+      label: User value
+      description: What user or operator benefit does this epic deliver?
+    validations:
+      required: true
+  - type: textarea
+    id: roadmap
+    attributes:
+      label: Roadmap
+      description: List child issues in execution order using a task checklist.
+      placeholder: |
+        - [ ] #123 [1/4] ...
+        - [ ] #124 [2/4] ...
+    validations:
+      required: true
+  - type: textarea
+    id: current_action
+    attributes:
+      label: Current action
+      description: State exactly what should be worked on now and what should not start yet.
+    validations:
+      required: true
+  - type: textarea
+    id: final_acceptance
+    attributes:
+      label: Final acceptance criteria
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks / constraints
+      description: Capture key constraints, blockers, or sequencing risks.
+    validations:
+      required: true
