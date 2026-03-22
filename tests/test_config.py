@@ -136,6 +136,167 @@ def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.Monkey
     assert cfg.tts_fallback_provider == ""
 
 
+def test_elevenlabs_provider_is_supported(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.tts_provider == "elevenlabs"
+    assert cfg.elevenlabs_output_format == "pcm_24000"
+
+
+def test_elevenlabs_fallback_provider_is_supported(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "silero")
+    monkeypatch.setenv("TTS_FALLBACK_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.tts_provider == "silero"
+    assert cfg.tts_fallback_provider == "elevenlabs"
+
+
+def test_elevenlabs_provider_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY"):
+        VoiceConfig.from_env()
+
+
+def test_elevenlabs_provider_requires_voice_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.delenv("ELEVENLABS_VOICE_ID", raising=False)
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_VOICE_ID"):
+        VoiceConfig.from_env()
+
+
+def test_elevenlabs_provider_requires_model_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.delenv("ELEVENLABS_MODEL_ID", raising=False)
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_MODEL_ID"):
+        VoiceConfig.from_env()
+
+
+def test_partial_elevenlabs_config_requires_full_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_VOICE_ID"):
+        VoiceConfig.from_env()
+
+
+def test_whitespace_elevenlabs_values_are_treated_as_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "   ")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY"):
+        VoiceConfig.from_env()
+
+
+def test_invalid_elevenlabs_output_format_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+    monkeypatch.setenv("ELEVENLABS_OUTPUT_FORMAT", "mp3_44100_128")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_OUTPUT_FORMAT"):
+        VoiceConfig.from_env()
+
+
+def test_valid_elevenlabs_output_format_loads(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+    monkeypatch.setenv("ELEVENLABS_OUTPUT_FORMAT", "pcm_44100")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.elevenlabs_output_format == "pcm_44100"
+
+
+def test_invalid_elevenlabs_connect_timeout_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+    monkeypatch.setenv("ELEVENLABS_CONNECT_TIMEOUT_SEC", "0")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_CONNECT_TIMEOUT_SEC"):
+        VoiceConfig.from_env()
+
+
+def test_invalid_elevenlabs_read_timeout_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+    monkeypatch.setenv("ELEVENLABS_READ_TIMEOUT_SEC", "-1")
+
+    with pytest.raises(RuntimeError, match="ELEVENLABS_READ_TIMEOUT_SEC"):
+        VoiceConfig.from_env()
+
+
+def test_elevenlabs_fields_are_loaded_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voice")
+    monkeypatch.setenv("ELEVENLABS_MODEL_ID", "model")
+    monkeypatch.setenv("ELEVENLABS_OUTPUT_FORMAT", "pcm_16000")
+    monkeypatch.setenv("ELEVENLABS_CONNECT_TIMEOUT_SEC", "6.5")
+    monkeypatch.setenv("ELEVENLABS_READ_TIMEOUT_SEC", "45")
+
+    cfg = VoiceConfig.from_env()
+
+    assert cfg.elevenlabs_api_key == "key"
+    assert cfg.elevenlabs_voice_id == "voice"
+    assert cfg.elevenlabs_model_id == "model"
+    assert cfg.elevenlabs_output_format == "pcm_16000"
+    assert cfg.elevenlabs_connect_timeout_sec == 6.5
+    assert cfg.elevenlabs_read_timeout_sec == 45.0
+
+
 def test_speech_chunk_limit_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
