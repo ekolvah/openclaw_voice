@@ -5,13 +5,19 @@ import pytest
 from openclaw_voice.config import VoiceConfig
 
 
+def _disable_dotenv_loading(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("openclaw_voice.config.load_dotenv", lambda: None)
+
+
 def test_missing_required_env_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "")
     with pytest.raises(RuntimeError, match="OPENCLAW_GATEWAY_TOKEN"):
         VoiceConfig.from_env()
 
 
 def test_invalid_float_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("WAKE_SENSITIVITY", "bad")
     with pytest.raises(RuntimeError, match="WAKE_SENSITIVITY"):
@@ -19,6 +25,7 @@ def test_invalid_float_raises(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.delenv("OPENCLAW_AGENT_ID", raising=False)
     cfg = VoiceConfig.from_env()
@@ -28,6 +35,7 @@ def test_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_unsupported_tts_provider_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("TTS_PROVIDER", "future-api")
 
@@ -36,6 +44,7 @@ def test_unsupported_tts_provider_raises(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_unsupported_voice_session_mode_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("VOICE_SESSION_MODE", "unknown")
 
@@ -44,6 +53,7 @@ def test_unsupported_voice_session_mode_raises(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_unsupported_wakeword_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("WAKEWORD_BACKEND", "other")
 
@@ -52,6 +62,7 @@ def test_unsupported_wakeword_backend_raises(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_unsupported_stt_provider_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("STT_PROVIDER", "other")
 
@@ -60,8 +71,11 @@ def test_unsupported_stt_provider_raises(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_groq_provider_requires_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("STT_PROVIDER", "groq")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_STT_MODEL", raising=False)
 
     with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
         VoiceConfig.from_env()
@@ -72,6 +86,7 @@ def test_groq_provider_requires_config(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_pvporcupine_requires_wake_word(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("WAKEWORD_BACKEND", "pvporcupine")
     monkeypatch.setenv("WAKE_WORD", "")
@@ -81,6 +96,7 @@ def test_pvporcupine_requires_wake_word(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_invalid_stop_intent_bool_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("STOP_INTENT_ENABLED", "maybe")
 
@@ -89,6 +105,7 @@ def test_invalid_stop_intent_bool_raises(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_missing_stop_intent_phrases_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("STOP_INTENT_ENABLED", "true")
     monkeypatch.setenv("STOP_INTENT_PHRASES", "")
@@ -98,6 +115,7 @@ def test_missing_stop_intent_phrases_raises(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_normalizes_wakeword_backend_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("WAKEWORD_BACKEND", "oww")
 
@@ -107,6 +125,7 @@ def test_normalizes_wakeword_backend_aliases(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("TTS_PROVIDER", "silero")
     monkeypatch.setenv("TTS_FALLBACK_PROVIDER", "")
@@ -118,6 +137,7 @@ def test_salute_auth_key_not_required_for_silero_only(monkeypatch: pytest.Monkey
 
 
 def test_speech_chunk_limit_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("SPEECH_MAX_CHUNK_CHARS", "123")
 
@@ -127,6 +147,7 @@ def test_speech_chunk_limit_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_silero_cache_dir_is_loaded_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    _disable_dotenv_loading(monkeypatch)
     monkeypatch.setenv("OPENCLAW_GATEWAY_TOKEN", "x")
     monkeypatch.setenv("SILERO_CACHE_DIR", ".cache/custom-torch")
 
